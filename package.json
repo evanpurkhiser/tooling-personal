@@ -1,0 +1,33 @@
+{
+  "name": "tooling-personal",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/graphql-schema": "^10.54.0",
+    "@tsconfig/node16": "^1.0.1",
+    "@types/git-url-parse": "^9.0.1",
+    "@types/js-yaml": "^4.0.2",
+    "@types/node": "^16.3.3",
+    "@types/yargs": "^17.0.2",
+    "chalk": "^4.1.1",
+    "fast-merge-async-iterators": "^1.0.5",
+    "git-url-parse": "^11.5.0",
+    "graphql": "^15.5.1",
+    "graphql-request": "^3.4.0",
+    "js-yaml": "^4.1.0",
+    "simple-git": "^2.41.1",
+    "typescript": "^4.3.5",
+    "yargs": "^17.0.1"
+  },
+  "devDependencies": {
+    "@evanpurkhiser/eslint-config": "^0.10.1",
+    "eslint": "^7.31.0",
+    "prettier": "^2.3.2",
+    "ts-node": "^10.1.0"
+  },
+  "volta": {
+    "node": "16.5.0",
+    "yarn": "1.22.4"
+  }
+}
