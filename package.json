@@ -21,6 +21,7 @@
     "graphql": "^15.5.1",
     "graphql-request": "^3.4.0",
     "js-yaml": "^4.1.0",
+    "listr2": "^3.11.0",
     "open": "^8.2.1",
     "simple-git": "^2.41.1",
     "yargs": "^17.0.1"

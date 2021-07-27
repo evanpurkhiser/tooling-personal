@@ -1,13 +1,12 @@
 import {spawn} from 'child_process';
 
-type Option = {
+type Option = Record<string, any>;
+
+type OptionExtra = {
   /**
    * The unqiue key of the option
    */
   id: string;
-};
-
-type OptionExtra = {
   /**
    * The label of the option
    */
@@ -47,7 +46,7 @@ export async function fzfSelect<O extends Option = Option>({
 
   fzf.stdin.setDefaultEncoding('utf-8');
 
-  const options: Record<string, O> = {};
+  const options: Record<string, O & OptionExtra> = {};
 
   await genValues(option => {
     options[option.id] = option;

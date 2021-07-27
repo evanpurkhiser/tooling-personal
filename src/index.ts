@@ -1,60 +1,106 @@
 #!/usr/bin/env node
 
+import {PullRequest} from '@octokit/graphql-schema';
 import chalk from 'chalk';
+import {Listr} from 'listr2';
 import open from 'open';
+import {DefaultLogFields, LogResult} from 'simple-git';
 import yargs from 'yargs';
 
-import {spawn} from 'child_process';
-import fs from 'fs/promises';
-import path from 'path';
-
 import {AssigneeType, selectAssignee} from './assignees';
+import {editPullRequest} from './editor';
 import {fzfSelect} from './fzf';
 import git from './git';
 import {createPull, getGithubRepoId, getPulls, requestReview} from './pulls';
-import {branchFromMessage, getRepoPath} from './utils';
+import {branchFromMessage} from './utils';
 
 const getCommits = () => git.log({from: 'HEAD', to: 'origin/master'});
 
 yargs(process.argv.slice(2))
   .command('pr', 'List assignees for repository', async () => {
-    const [repoId, commits, prs] = await Promise.all([
-      getGithubRepoId(),
-      getCommits(),
-      getPulls(),
-    ]);
+    type Context = {
+      /**
+       * The ID of the repository
+       */
+      repoId: string;
+      /**
+       * The current list of commits
+       */
+      commits: LogResult;
+      /**
+       * The list of existing pull requests
+       */
+      prs: PullRequest[];
+    };
 
-    if (repoId === null) {
-      console.log(chalk.red`No GitHub repository associated to this repo`);
-      process.exit(1);
-    }
+    const infoTasks = new Listr<Context>([], {concurrent: true});
 
-    if (commits.total === 0) {
-      console.log(chalk.red`No commits after origin/master`);
-    }
+    infoTasks.add({
+      title: 'Fetching repsotiry ID',
+      task: async (ctx, task) => {
+        const repoId = await getGithubRepoId();
+
+        if (repoId === null) {
+          throw new Error('Failed to get repository ID');
+        }
+
+        task.title = 'Got repository ID';
+        ctx.repoId = repoId;
+      },
+    });
+
+    infoTasks.add({
+      title: 'Getting unpublished commits',
+      task: async (ctx, task) => {
+        const commits = await getCommits();
+
+        if (commits.total === 0) {
+          throw new Error('No commits to push');
+        }
+
+        task.title = `Found ${commits.total} publishable commits`;
+        ctx.commits = commits;
+      },
+    });
+
+    infoTasks.add({
+      title: 'Fetching existing Pull Requests',
+      task: async (ctx, task) => {
+        const prs = await getPulls();
+        task.title = `Found ${prs.length} existing PRs`;
+        ctx.prs = prs;
+
+        task.stdout().write('TESTING\n');
+      },
+    });
+
+    const {repoId, commits, prs} = await infoTasks.run();
+
+    const selectCommits = () =>
+      fzfSelect<DefaultLogFields>({
+        prompt: 'Select commit(s) for PR:',
+        genValues: addOption =>
+          commits.all.forEach(commit => {
+            const branchName = branchFromMessage(commit.message);
+            const pr = prs.find(pr => pr.headRefName === branchName);
+
+            const existingPrLabel =
+              pr !== undefined ? chalk.yellowBright`(updates #${pr.number})` : '';
+
+            const shortHash = commit.hash.slice(0, 8);
+            const label = chalk`{red ${shortHash}} {blue [${commit.author_name}]} {white ${commit.message}} ${existingPrLabel}`;
+
+            addOption({label, id: commit.hash, ...commit});
+          }),
+      });
 
     // 01. Select which commits to turn into PRs
     const selectedCommits =
       commits.total === 1
-        ? [{id: commits.all[0].hash}]
-        : await fzfSelect({
-            prompt: 'Select commit(s) for PR:',
-            genValues: addOption =>
-              commits.all.forEach(commit => {
-                const branchName = branchFromMessage(commit.message);
-                const pr = prs.find(pr => pr.headRefName === branchName);
+        ? [{id: commits.all[0].hash, ...commits.all[0]}]
+        : await selectCommits();
 
-                const existingPrLabel =
-                  pr !== undefined ? chalk.yellowBright`(updates #${pr.number})` : '';
-
-                const shortHash = commit.hash.slice(0, 8);
-                const label = chalk`{red ${shortHash}} {blue [${commit.author_name}]} {white ${commit.message}} ${existingPrLabel}`;
-
-                addOption({label, id: commit.hash});
-              }),
-          });
-
-    const selectedShas = selectedCommits.map(option => option.id);
+    const selectedShas = selectedCommits.map(option => option.hash);
 
     // 02. Re-order our commits when there are multiple
     //     commits and the selected commits are not already at
@@ -66,46 +112,41 @@ yargs(process.argv.slice(2))
       .map(sha => `pick ${sha}`)
       .join('\n');
 
-    await git
-      .env('GIT_SEQUENCE_EDITOR', `echo "${rebaseContents}" >`)
-      .rebase(['--interactive', '--autostash', 'origin/master']);
-
-    // 03. Push commits
-    const newCommits = await getCommits();
-    const targetCommit = newCommits.all[newCommits.all.length - selectedCommits.length];
+    const targetCommit = selectedCommits[selectedCommits.length - 1];
     const branchName = branchFromMessage(targetCommit.message);
 
-    const gitPush = git.push([
-      '--force',
-      'origin',
-      `${targetCommit.hash}:refs/heads/${branchName}`,
-    ]);
+    const triggerRebaseAndPush = async () => {
+      await git
+        .env('GIT_SEQUENCE_EDITOR', `echo "${rebaseContents}" >`)
+        .rebase(['--interactive', '--autostash', 'origin/master']);
+
+      const newCommits = await getCommits();
+      const rebaseTargetCommit =
+        newCommits.all[newCommits.all.length - selectedCommits.length];
+
+      await git.push([
+        '--force',
+        'origin',
+        `${rebaseTargetCommit.hash}:refs/heads/${branchName}`,
+      ]);
+    };
+
+    // 03. Rebase and push the selected commits
+    const rebaseAndPush = triggerRebaseAndPush();
 
     // 04. Nothing left to do if we just updated an existing
     //     pull request.
     if (prs.some(pr => pr.headRefName === branchName)) {
-      await gitPush;
+      const rebaseTask = new Listr([
+        {title: 'Rebasing + Pushing', task: () => rebaseAndPush},
+      ]);
+
+      await rebaseTask.run();
       return;
     }
 
     // 05. Open an editor to write the pull request
-    const messageBody = targetCommit.body;
-    const split = messageBody.length > 0 ? '\n\n' : '';
-    const prTemplate = `${targetCommit.message}${split}${messageBody}`;
-
-    const pullEditFile = path.join(getRepoPath(), '.git', 'PULLREQ_EDITMSG');
-    await fs.writeFile(pullEditFile, prTemplate);
-
-    const editor = spawn(process.env.EDITOR ?? 'vim', [pullEditFile], {
-      shell: true,
-      stdio: 'inherit',
-    });
-
-    await new Promise(resolve => editor.on('close', resolve));
-    const prContents = await fs.readFile(pullEditFile).then(b => b.toString());
-
-    const [title, ...bodyParts] = prContents.split('\n');
-    const body = bodyParts.join('\n').trim();
+    const {title, body} = await editPullRequest(targetCommit);
 
     if (title.length === 0) {
       console.log(chalk.red`Missing PR title`);
@@ -113,7 +154,7 @@ yargs(process.argv.slice(2))
     }
 
     // 06. Create a Pull Request
-    await gitPush;
+    await rebaseAndPush;
 
     const pr = createPull({
       baseRefName: 'master',
