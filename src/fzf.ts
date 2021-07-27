@@ -1,19 +1,22 @@
 import {spawn} from 'child_process';
 
-type FzfOption = {
+type Option = {
   /**
-   * The identifier returned from the selected value
+   * The unqiue key of the option
    */
   id: string;
+};
+
+type OptionExtra = {
   /**
-   * The label shown in fzf
+   * The label of the option
    */
   label: string;
 };
 
-type AddOptionFn = (value: FzfOption) => void;
+type AddOptionFn<O extends Option> = (value: O & OptionExtra) => void;
 
-type FzfSelectOpts = {
+type FzfSelectOpts<O extends Option> = {
   /**
    * The text displayed at the fzf prompt
    */
@@ -22,10 +25,13 @@ type FzfSelectOpts = {
    * Function called to insert values into fzf. Input will be
    * closed to fzf after this function completes.
    */
-  genValues: (addOption: AddOptionFn) => Promise<void> | void;
+  genValues: (addOption: AddOptionFn<O>) => Promise<void> | void;
 };
 
-export async function fzfSelect({prompt, genValues}: FzfSelectOpts) {
+export async function fzfSelect<O extends Option = Option>({
+  prompt,
+  genValues,
+}: FzfSelectOpts<O>) {
   const fzf = spawn(
     'fzf',
     [
@@ -41,7 +47,13 @@ export async function fzfSelect({prompt, genValues}: FzfSelectOpts) {
 
   fzf.stdin.setDefaultEncoding('utf-8');
 
-  await genValues(value => fzf.stdin.write(`${value.id}\t${value.label.trim()}\n`));
+  const options: Record<string, O> = {};
+
+  await genValues(option => {
+    options[option.id] = option;
+    fzf.stdin.write(`${option.id}\t${option.label.trim()}\n`);
+  });
+
   fzf.stdin.end();
 
   const output = await new Promise<string>(resolve =>
@@ -50,6 +62,7 @@ export async function fzfSelect({prompt, genValues}: FzfSelectOpts) {
 
   return output
     .split('\n')
-    .filter(a => a !== '')
-    .map(a => a.split('\t')[0]);
+    .filter(line => line !== '')
+    .map(line => line.split('\t')[0])
+    .map(id => options[id]);
 }

@@ -1,21 +1,31 @@
 import chalk from 'chalk';
+import open from 'open';
 import yargs from 'yargs';
 
 import {spawn} from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 
-import {selectAssignee} from './assignees';
+import {AssigneeType, selectAssignee} from './assignees';
 import {fzfSelect} from './fzf';
 import git from './git';
-import {getPulls} from './pulls';
+import {createPull, getGithubRepoId, getPulls, requestReview} from './pulls';
 import {branchFromMessage, getRepoPath} from './utils';
 
 const getCommits = () => git.log({from: 'HEAD', to: 'origin/master'});
 
 yargs(process.argv.slice(2))
   .command('pr', 'List assignees for repository', async () => {
-    const [commits, prs] = await Promise.all([getCommits(), getPulls()]);
+    const [repoId, commits, prs] = await Promise.all([
+      getGithubRepoId(),
+      getCommits(),
+      getPulls(),
+    ]);
+
+    if (repoId === null) {
+      console.log(chalk.red`No GitHub repository associated to this repo`);
+      process.exit(1);
+    }
 
     if (commits.total === 0) {
       console.log(chalk.red`No commits after origin/master`);
@@ -24,16 +34,16 @@ yargs(process.argv.slice(2))
     // 01. Select which commits to turn into PRs
     const selectedCommits =
       commits.total === 1
-        ? [commits.all[0].hash]
+        ? [{id: commits.all[0].hash}]
         : await fzfSelect({
             prompt: 'Select commit(s) for PR:',
             genValues: addOption =>
               commits.all.forEach(commit => {
                 const branchName = branchFromMessage(commit.message);
-                const pr = prs.find(pr => pr.baseRefName === branchName);
+                const pr = prs.find(pr => pr.headRefName === branchName);
 
                 const existingPrLabel =
-                  pr !== undefined ? chalk.yellowBright`(updates #${pr.id})` : '';
+                  pr !== undefined ? chalk.yellowBright`(updates #${pr.number})` : '';
 
                 const shortHash = commit.hash.slice(0, 8);
                 const label = chalk`{red ${shortHash}} {blue [${commit.author_name}]} {white ${commit.message}} ${existingPrLabel}`;
@@ -42,12 +52,14 @@ yargs(process.argv.slice(2))
               }),
           });
 
+    const selectedShas = selectedCommits.map(option => option.id);
+
     // 02. Re-order our commits when there are multiple
     //     commits and the selected commits are not already at
     //     the end of the list.
     const rebaseContents = [
-      ...selectedCommits,
-      ...commits.all.filter(c => !selectedCommits.includes(c.hash)).map(c => c.hash),
+      ...selectedShas,
+      ...commits.all.filter(c => !selectedShas.includes(c.hash)).map(c => c.hash),
     ]
       .map(sha => `pick ${sha}`)
       .join('\n');
@@ -58,7 +70,7 @@ yargs(process.argv.slice(2))
 
     // 03. Push commits
     const newCommits = await getCommits();
-    const targetCommit = newCommits.all[selectedCommits.length - 1];
+    const targetCommit = newCommits.all[newCommits.all.length - selectedCommits.length];
     const branchName = branchFromMessage(targetCommit.message);
 
     const gitPush = git.push([
@@ -69,7 +81,7 @@ yargs(process.argv.slice(2))
 
     // 04. Nothing left to do if we just updated an existing
     //     pull request.
-    if (prs.some(pr => pr.baseRefName === branchName)) {
+    if (prs.some(pr => pr.headRefName === branchName)) {
       await gitPush;
       return;
     }
@@ -78,25 +90,47 @@ yargs(process.argv.slice(2))
     const assignees = await selectAssignee();
 
     // 06. Open an editor to write the pull request
-    const prContents = `${targetCommit.message}${
-      targetCommit.body.length !== 0 ? `\n\n${targetCommit.body}` : ''
-    }`;
+    const messageBody = targetCommit.body;
+    const split = messageBody.length > 0 ? '\n\n' : '';
+    const prTemplate = `${targetCommit.message}${split}${messageBody}`;
 
-    const pullInfoFile = path.join(getRepoPath(), '.git', 'PULLREQ_EDITMSG');
+    const pullEditFile = path.join(getRepoPath(), '.git', 'PULLREQ_EDITMSG');
+    await fs.writeFile(pullEditFile, prTemplate);
 
-    await fs.writeFile(pullInfoFile, prContents);
-
-    console.log('FILE WRITTEN');
-
-    console.log(process.env.EDITOR);
-    const editor = spawn(process.env.EDITOR ?? 'vim', [pullInfoFile], {
+    const editor = spawn(process.env.EDITOR ?? 'vim', [pullEditFile], {
       shell: true,
       stdio: 'inherit',
     });
 
     await new Promise(resolve => editor.on('close', resolve));
+    const prContents = await fs.readFile(pullEditFile).then(b => b.toString());
 
-    // console.log(await selectAssignee());
+    const [title, ...bodyParts] = prContents.split('\n');
+    const body = bodyParts.join('\n').trim();
+
+    if (title.length === 0) {
+      console.log(chalk.red`Missing PR title`);
+      process.exit(1);
+    }
+
+    // 07. Create a Pull Request
+    await gitPush;
+
+    const {createPullRequest} = await createPull({
+      baseRefName: 'master',
+      headRefName: branchName,
+      repositoryId: repoId,
+      title,
+      body,
+    });
+
+    await requestReview({
+      pullRequestId: createPullRequest.pullRequest.id,
+      userIds: assignees.filter(a => a.type === AssigneeType.User).map(a => a.id),
+      teamIds: assignees.filter(a => a.type === AssigneeType.Team).map(a => a.id),
+    });
+
+    open(createPullRequest.pullRequest.url);
   })
   .demandCommand(1, '')
   .parse();

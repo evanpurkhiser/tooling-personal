@@ -7,6 +7,18 @@ import {fzfSelect} from './fzf';
 import {paginatedRequest, request} from './graphql';
 import {getRepoUrl} from './utils';
 
+export enum AssigneeType {
+  User,
+  Team,
+}
+
+type Assignee = {
+  type: AssigneeType;
+  id: string;
+  slug: string;
+  name?: string;
+};
+
 function isUser(obj: any): obj is {repository: Repository} {
   return obj.repository !== undefined;
 }
@@ -22,6 +34,7 @@ async function* getAssignees() {
       repository(owner: $owner, name: $repo) {
         assignableUsers(first: 100, after: $cursor) {
           nodes {
+            id
             login
             name
           }
@@ -47,6 +60,7 @@ async function* getAssignees() {
       organization(login: $owner) {
         teams(first: 100, after: $cursor) {
           nodes {
+            id
             combinedSlug
             name
           }
@@ -88,15 +102,19 @@ async function* getAssignees() {
   for await (const result of items) {
     const assignees = isUser(result)
       ? result.repository.assignableUsers.nodes!.map(user => ({
+          type: AssigneeType.User,
+          id: user!.id,
           slug: user!.login,
           name: user!.name,
         }))
       : result.organization.teams.nodes!.map(team => ({
+          type: AssigneeType.Team,
+          id: team!.id,
           slug: team!.combinedSlug,
           name: team!.name,
         }));
 
-    yield* assignees;
+    yield* assignees as Assignee[];
   }
 }
 
@@ -105,7 +123,7 @@ async function* getAssignees() {
  * repository.
  */
 export const selectAssignee = () =>
-  fzfSelect({
+  fzfSelect<Assignee>({
     prompt: 'Select Assignees:',
     genValues: async addOption => {
       for await (const assignee of getAssignees()) {
@@ -113,7 +131,7 @@ export const selectAssignee = () =>
           assignee.name === null ? chalk.gray('No name') : chalk.yellow(assignee.name);
         const label = chalk`${assignee.slug} {white [}${name}{white ]}\n`;
 
-        addOption({label, id: assignee.slug});
+        addOption({label, ...assignee});
       }
     },
   });

@@ -5,6 +5,8 @@ import childProcess from 'child_process';
 import {readFileSync} from 'fs';
 import path from 'path';
 
+const BRANCH_PREFIX = 'evanpurkhiser/';
+
 /**
  * Get's the current repo information
  */
@@ -17,6 +19,9 @@ export function getRepoUrl() {
   }
 }
 
+/**
+ * Get's the absolute path to the current git repo
+ */
 export function getRepoPath() {
   return childProcess.execSync('git rev-parse --show-toplevel').toString().trim();
 }
@@ -31,15 +36,14 @@ export function getHubToken() {
   return hubConfig['github.com'][0]['oauth_token'];
 }
 
-const BRANCH_PREFIX = 'evanpurkhiser/';
-
 /**
  * Generates a consistent branch name from a commit message
  */
 export function branchFromMessage(commitMessage: string) {
   const branch = commitMessage
-    .replace(/[^0-9a-zA-Z ]/g, '-')
-    .replace(' ', '-')
+    .toLowerCase()
+    .replaceAll(/[^0-9a-zA-Z]/g, '-')
+    .replaceAll(/-+/g, '-')
     .slice(0, 255);
 
   return BRANCH_PREFIX + branch;
