@@ -1,6 +1,6 @@
 {
   "name": "tooling-personal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
@@ -22,13 +22,16 @@
   "devDependencies": {
     "@evanpurkhiser/eslint-config": "^0.10.1",
     "@tsconfig/node16": "^1.0.1",
-    "typescript": "^4.3.5",
     "eslint": "^7.31.0",
     "prettier": "^2.3.2",
-    "ts-node": "^10.1.0"
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc && chmod +x ./build/index.js"
+  },
+  "bin": {
+    "pt": "./build/index.js"
   },
   "volta": {
     "node": "16.5.0",
