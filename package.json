@@ -27,11 +27,11 @@
     "ts-node": "^10.1.0",
     "typescript": "^4.3.5"
   },
-  "bin": {
-    "pt": "./build/index.js"
-  },
   "scripts": {
     "build": "tsc && chmod +x ./build/index.js"
+  },
+  "bin": {
+    "pt": "./build/index.js"
   },
   "volta": {
     "node": "16.5.0",
