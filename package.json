@@ -1,5 +1,5 @@
 {
-  "name": "tooling-personal",
+  "name": "@evanpurkhiser/tooling-personal",
   "version": "1.3.0",
   "main": "index.js",
   "license": "MIT",
