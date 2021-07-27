@@ -1,0 +1,25 @@
+name: publish
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: volta-cli/action@v1
+    - run: yarn install
+    - run: |
+      git config user.name "GitHub Actions"
+      git config user.email "<>"
+      yarn version --minor --force
+      git push
+    - run: yarn build
+    - name: yarn publish
+      run: |
+        echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
+        yarn publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
