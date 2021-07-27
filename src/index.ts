@@ -88,10 +88,7 @@ yargs(process.argv.slice(2))
       return;
     }
 
-    // 05. Select assignees for the new PR
-    const assignees = await selectAssignee();
-
-    // 06. Open an editor to write the pull request
+    // 05. Open an editor to write the pull request
     const messageBody = targetCommit.body;
     const split = messageBody.length > 0 ? '\n\n' : '';
     const prTemplate = `${targetCommit.message}${split}${messageBody}`;
@@ -115,10 +112,10 @@ yargs(process.argv.slice(2))
       process.exit(1);
     }
 
-    // 07. Create a Pull Request
+    // 06. Create a Pull Request
     await gitPush;
 
-    const {createPullRequest} = await createPull({
+    const pr = createPull({
       baseRefName: 'master',
       headRefName: branchName,
       repositoryId: repoId,
@@ -126,10 +123,12 @@ yargs(process.argv.slice(2))
       body,
     });
 
+    const [{createPullRequest}, reviewers] = await Promise.all([pr, selectAssignee()]);
+
     await requestReview({
       pullRequestId: createPullRequest.pullRequest.id,
-      userIds: assignees.filter(a => a.type === AssigneeType.User).map(a => a.id),
-      teamIds: assignees.filter(a => a.type === AssigneeType.Team).map(a => a.id),
+      userIds: reviewers.filter(a => a.type === AssigneeType.User).map(a => a.id),
+      teamIds: reviewers.filter(a => a.type === AssigneeType.Team).map(a => a.id),
     });
 
     open(createPullRequest.pullRequest.url);
