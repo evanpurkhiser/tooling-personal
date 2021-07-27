@@ -20,6 +20,6 @@ jobs:
     - name: yarn publish
       run: |
         echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
-        yarn publish
+        yarn publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

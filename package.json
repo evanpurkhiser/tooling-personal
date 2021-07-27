@@ -1,7 +1,9 @@
 {
   "name": "@evanpurkhiser/tooling-personal",
   "version": "1.4.0",
-  "main": "index.js",
+  "description": "Evan Purkhiser's personal tooling",
+  "repository": "https://github.com/EvanPurkhiser/tooling-personal",
+  "author": "Evan Purkhiser",
   "license": "MIT",
   "dependencies": {
     "@octokit/graphql-schema": "^10.54.0",
