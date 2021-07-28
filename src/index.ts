@@ -18,7 +18,7 @@ const getCommits = () => git.log({from: 'HEAD', to: 'origin/master'});
 
 yargs(process.argv.slice(2))
   .command('pr', 'List assignees for repository', async () => {
-    type Context = {
+    type InfoCtx = {
       /**
        * The ID of the repository
        */
@@ -33,9 +33,14 @@ yargs(process.argv.slice(2))
       prs: PullRequest[];
     };
 
-    const infoTasks = new Listr<Context>([], {concurrent: true});
+    const rendererOptions = {showTimer: true};
 
-    infoTasks.add({
+    const collectInfoTask = new Listr<InfoCtx>([], {
+      concurrent: true,
+      rendererOptions,
+    });
+
+    collectInfoTask.add({
       title: 'Fetching repsotiry ID',
       task: async (ctx, task) => {
         const repoId = await getGithubRepoId();
@@ -44,12 +49,12 @@ yargs(process.argv.slice(2))
           throw new Error('Failed to get repository ID');
         }
 
-        task.title = 'Got repository ID';
+        task.title = 'Found repository ID';
         ctx.repoId = repoId;
       },
     });
 
-    infoTasks.add({
+    collectInfoTask.add({
       title: 'Getting unpublished commits',
       task: async (ctx, task) => {
         const commits = await getCommits();
@@ -63,18 +68,15 @@ yargs(process.argv.slice(2))
       },
     });
 
-    infoTasks.add({
+    collectInfoTask.add({
       title: 'Fetching existing Pull Requests',
       task: async (ctx, task) => {
-        const prs = await getPulls();
-        task.title = `Found ${prs.length} existing PRs`;
-        ctx.prs = prs;
-
-        task.stdout().write('TESTING\n');
+        ctx.prs = await getPulls();
+        task.title = `Found ${ctx.prs.length} existing PRs`;
       },
     });
 
-    const {repoId, commits, prs} = await infoTasks.run();
+    const {repoId, commits, prs} = await collectInfoTask.run();
 
     const selectCommits = () =>
       fzfSelect<DefaultLogFields>({
@@ -115,47 +117,53 @@ yargs(process.argv.slice(2))
     const targetCommit = selectedCommits[selectedCommits.length - 1];
     const branchName = branchFromMessage(targetCommit.message);
 
-    const triggerRebaseAndPush = async () => {
+    const willOpenPr = prs.some(pr => pr.headRefName === branchName);
+
+    // 03. Rebase and push the selected commits
+    const doRebase = async () => {
       await git
         .env('GIT_SEQUENCE_EDITOR', `echo "${rebaseContents}" >`)
         .rebase(['--interactive', '--autostash', 'origin/master']);
-
-      const newCommits = await getCommits();
-      const rebaseTargetCommit =
-        newCommits.all[newCommits.all.length - selectedCommits.length];
-
-      await git.push([
-        '--force',
-        'origin',
-        `${rebaseTargetCommit.hash}:refs/heads/${branchName}`,
-      ]);
     };
 
-    // 03. Rebase and push the selected commits
-    const rebaseAndPush = triggerRebaseAndPush();
+    const doPush = async () => {
+      const newCommits = await getCommits();
+      const commitIdx = newCommits.all.length - selectedCommits.length;
+      const rebaseTargetCommit = newCommits.all[commitIdx];
+
+      const refSpec = `${rebaseTargetCommit.hash}:refs/heads/${branchName}`;
+      await git.push(['--force', 'origin', refSpec]);
+    };
+
+    const rebaseAndPushTask = new Listr([], {rendererOptions});
+
+    rebaseAndPushTask.add({title: 'Rebasing commits', task: doRebase});
+    rebaseAndPushTask.add({title: 'Pushing to GitHub', task: doPush});
 
     // 04. Nothing left to do if we just updated an existing
     //     pull request.
-    if (prs.some(pr => pr.headRefName === branchName)) {
-      const rebaseTask = new Listr([
-        {title: 'Rebasing + Pushing', task: () => rebaseAndPush},
-      ]);
-
-      await rebaseTask.run();
+    if (willOpenPr) {
+      await rebaseAndPushTask.run();
       return;
     }
 
-    // 05. Open an editor to write the pull request
+    process.stdout.cork();
+    const rebaseAndPush = rebaseAndPushTask.run();
+
     const {title, body} = await editPullRequest(targetCommit);
 
+    // 05. Open an editor to write the pull request
+
+    // XXX: We cork stdout here to avoid listr from corrupting vims output
+    process.stdout.uncork();
+    await rebaseAndPush;
+
     if (title.length === 0) {
-      console.log(chalk.red`Missing PR title`);
+      console.log(chalk.red`Missing PR title, aborting`);
       process.exit(1);
     }
 
     // 06. Create a Pull Request
-    await rebaseAndPush;
-
     const pr = createPull({
       baseRefName: 'master',
       headRefName: branchName,
@@ -166,12 +174,23 @@ yargs(process.argv.slice(2))
 
     const [{createPullRequest}, reviewers] = await Promise.all([pr, selectAssignee()]);
 
-    await requestReview({
-      pullRequestId: createPullRequest.pullRequest.id,
-      userIds: reviewers.filter(a => a.type === AssigneeType.User).map(a => a.id),
-      teamIds: reviewers.filter(a => a.type === AssigneeType.Team).map(a => a.id),
+    // 07. Request reviews
+    const reviewRequestTask = new Listr([], {rendererOptions});
+
+    reviewRequestTask.add({
+      enabled: () => reviewers.length > 0,
+      title: 'Requesting Reviewers',
+      task: () =>
+        requestReview({
+          pullRequestId: createPullRequest.pullRequest.id,
+          userIds: reviewers.filter(a => a.type === AssigneeType.User).map(a => a.id),
+          teamIds: reviewers.filter(a => a.type === AssigneeType.Team).map(a => a.id),
+        }),
     });
 
+    await reviewRequestTask.run();
+
+    // 08. Open in browser
     open(createPullRequest.pullRequest.url);
   })
   .demandCommand(1, '')
