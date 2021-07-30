@@ -9,11 +9,13 @@ import {editPullRequest} from '../editor';
 import {fzfSelect} from '../fzf';
 import git from '../git';
 import {createPull, getGithubRepoId, getPulls, requestReview} from '../pulls';
-import {branchFromMessage} from '../utils';
+import {branchFromMessage, getRepoKey} from '../utils';
 
 const getCommits = () => git.log({from: 'HEAD', to: 'origin/master'});
 
 export default async function pr() {
+  const repo = await getRepoKey();
+
   const rendererOptions = {showTimer: true};
 
   const collectInfoTask = new Listr<{
@@ -28,7 +30,7 @@ export default async function pr() {
   collectInfoTask.add({
     title: 'Fetching repsotiry ID',
     task: async (ctx, task) => {
-      const repoId = await getGithubRepoId();
+      const repoId = await getGithubRepoId(repo);
 
       if (repoId === null) {
         throw new Error('Failed to get repository ID');
@@ -56,7 +58,7 @@ export default async function pr() {
   collectInfoTask.add({
     title: 'Fetching existing Pull Requests',
     task: async (ctx, task) => {
-      ctx.prs = await getPulls();
+      ctx.prs = await getPulls(repo);
       task.title = `Found ${ctx.prs.length} existing PRs`;
     },
   });
@@ -132,6 +134,8 @@ export default async function pr() {
     return;
   }
 
+  // Cork stdout to avoid listr output polluting vim. We'll uncork after we
+  // close vim
   process.stdout.cork();
   const rebaseAndPush = rebaseAndPushTask.run();
 
@@ -157,7 +161,7 @@ export default async function pr() {
     body,
   });
 
-  const reviewers = await selectAssignee();
+  const reviewers = await selectAssignee(repo);
   const {createPullRequest} = await pr;
 
   // 07. Request reviews

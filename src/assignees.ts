@@ -5,7 +5,7 @@ import {gql} from 'graphql-request';
 
 import {fzfSelect} from './fzf';
 import {paginatedRequest, request} from './graphql';
-import {getRepoUrl} from './utils';
+import {RepoKey} from './types';
 
 export enum AssigneeType {
   User,
@@ -26,9 +26,7 @@ function isUser(obj: any): obj is {repository: Repository} {
 /**
  * Generates a list of assignable teams and users
  */
-async function* getAssignees() {
-  const {owner, name: repo} = getRepoUrl();
-
+async function* getAssignees(repo: RepoKey) {
   const assigneesGql = gql`
     query userAssignees($owner: String!, $repo: String!, $cursor: String) {
       repository(owner: $owner, name: $repo) {
@@ -76,14 +74,14 @@ async function* getAssignees() {
   let isOrganization = true;
 
   try {
-    await request(orgInfoGql, {owner});
+    await request(orgInfoGql, {owner: repo.owner});
   } catch {
     isOrganization = false;
   }
 
   const userAssignees = paginatedRequest<{repository: Repository}>(
     assigneesGql,
-    {owner, repo},
+    {...repo},
     (obj: any) => obj.repository.assignableUsers.pageInfo
   );
 
@@ -91,7 +89,7 @@ async function* getAssignees() {
     ? null
     : paginatedRequest<{organization: Organization}>(
         teamGql,
-        {owner},
+        {owner: repo.owner},
         (obj: any) => obj.organization.teams.pageInfo
       );
 
@@ -122,11 +120,11 @@ async function* getAssignees() {
  * Create a fzf prompt for selecting assignees for PRs / issues in this
  * repository.
  */
-export const selectAssignee = () =>
+export const selectAssignee = (repo: RepoKey) =>
   fzfSelect<Assignee>({
     prompt: 'Select Assignees:',
     genValues: async addOption => {
-      for await (const assignee of getAssignees()) {
+      for await (const assignee of getAssignees(repo)) {
         const name =
           assignee.name === null ? chalk.gray('No name') : chalk.yellow(assignee.name);
         const label = chalk`${assignee.slug} {white [}${name}{white ]}\n`;

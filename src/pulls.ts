@@ -6,11 +6,9 @@ import {
 import {gql} from 'graphql-request';
 
 import {paginatedRequest, request} from './graphql';
-import {getRepoUrl} from './utils';
+import {RepoKey} from './types';
 
-export async function getGithubRepoId() {
-  const {owner, name: repo} = getRepoUrl();
-
+export async function getGithubRepoId(repo: RepoKey) {
   const repoGql = gql`
     query repo($owner: String!, $repo: String!) {
       repository(owner: $owner, name: $repo) {
@@ -20,7 +18,7 @@ export async function getGithubRepoId() {
   `;
 
   try {
-    const resp = await request(repoGql, {owner, repo});
+    const resp = await request(repoGql, {...repo});
     return resp.repository.id as string;
   } catch {
     return null;
@@ -30,7 +28,7 @@ export async function getGithubRepoId() {
 /**
  * Get your open pull requests for this repo
  */
-export async function getPulls() {
+export async function getPulls(repo: RepoKey) {
   const user = await request(gql`
     query {
       viewer {
@@ -40,7 +38,6 @@ export async function getPulls() {
   `);
 
   const author = user.viewer.login;
-  const repo = getRepoUrl();
 
   const pullResults = paginatedRequest(
     gql`
@@ -63,7 +60,7 @@ export async function getPulls() {
         }
       }
     `,
-    {query: `is:pr is:open author:${author} repo:${repo.full_name}`},
+    {query: `is:pr is:open author:${author} repo:${repo.fullName}`},
     (obj: any) => obj.search.pageInfo
   );
 

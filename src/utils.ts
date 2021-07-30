@@ -1,29 +1,35 @@
 import gitUrlParse from 'git-url-parse';
 import yaml from 'js-yaml';
 
-import childProcess from 'child_process';
 import {readFileSync} from 'fs';
 import path from 'path';
+
+import git from './git';
 
 const BRANCH_PREFIX = 'evanpurkhiser/';
 
 /**
  * Get's the current repo information
  */
-export function getRepoUrl() {
-  try {
-    const url = childProcess.execSync('git config --get remote.origin.url').toString();
-    return gitUrlParse(url);
-  } catch {
-    process.exit(1);
-  }
+export async function getRepoKey() {
+  const url = await git.raw('config', '--get', 'remote.origin.url');
+  const repo = gitUrlParse(url);
+
+  const repoKey = {
+    owner: repo.owner,
+    repo: repo.name,
+    fullName: repo.full_name,
+  };
+
+  return repoKey;
 }
 
 /**
  * Get's the absolute path to the current git repo
  */
-export function getRepoPath() {
-  return childProcess.execSync('git rev-parse --show-toplevel').toString().trim();
+export async function getRepoPath() {
+  const path = await git.revparse(['--show-toplevel']);
+  return path.trim();
 }
 
 /**

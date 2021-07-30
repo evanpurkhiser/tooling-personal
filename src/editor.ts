@@ -11,7 +11,7 @@ export async function editPullRequest(commit: DefaultLogFields) {
   const split = messageBody.length > 0 ? '\n\n' : '';
   const prTemplate = `${commit.message}${split}${messageBody}`;
 
-  const pullEditFile = path.join(getRepoPath(), '.git', 'PULLREQ_EDITMSG');
+  const pullEditFile = path.join(await getRepoPath(), '.git', 'PULLREQ_EDITMSG');
   await fs.writeFile(pullEditFile, prTemplate);
 
   const editor = spawn(process.env.EDITOR ?? 'vim', [pullEditFile], {
