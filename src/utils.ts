@@ -1,10 +1,9 @@
 import gitUrlParse from 'git-url-parse';
 import yaml from 'js-yaml';
+import simpleGit from 'simple-git';
 
 import {readFileSync} from 'fs';
 import path from 'path';
-
-import git from './git';
 
 const BRANCH_PREFIX = 'evanpurkhiser/';
 
@@ -12,7 +11,7 @@ const BRANCH_PREFIX = 'evanpurkhiser/';
  * Get's the current repo information
  */
 export async function getRepoKey() {
-  const url = await git.raw('config', '--get', 'remote.origin.url');
+  const url = await simpleGit().raw('config', '--get', 'remote.origin.url');
   const repo = gitUrlParse(url);
 
   const repoKey = {
@@ -28,7 +27,7 @@ export async function getRepoKey() {
  * Get's the absolute path to the current git repo
  */
 export async function getRepoPath() {
-  const path = await git.revparse(['--show-toplevel']);
+  const path = await simpleGit().revparse(['--show-toplevel']);
   return path.trim();
 }
 

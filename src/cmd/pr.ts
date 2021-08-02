@@ -2,16 +2,15 @@ import {PullRequest} from '@octokit/graphql-schema';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
 import open from 'open';
-import {DefaultLogFields, LogResult} from 'simple-git';
+import simpleGit, {DefaultLogFields, LogResult} from 'simple-git';
 
 import {AssigneeType, selectAssignee} from '../assignees';
 import {editPullRequest} from '../editor';
 import {fzfSelect} from '../fzf';
-import git from '../git';
 import {createPull, getGithubRepoId, getPulls, requestReview} from '../pulls';
 import {branchFromMessage, getRepoKey} from '../utils';
 
-const getCommits = () => git.log({from: 'HEAD', to: 'origin/master'});
+const getCommits = () => simpleGit().log({from: 'HEAD', to: 'origin/master'});
 
 export default async function pr() {
   const repo = await getRepoKey();
@@ -108,7 +107,7 @@ export default async function pr() {
 
   // 03. Rebase and push the selected commits
   const doRebase = async () => {
-    await git
+    await simpleGit()
       .env('GIT_SEQUENCE_EDITOR', `echo "${rebaseContents}" >`)
       .rebase(['--interactive', '--autostash', 'origin/master']);
   };
@@ -119,7 +118,7 @@ export default async function pr() {
     const rebaseTargetCommit = newCommits.all[commitIdx];
 
     const refSpec = `${rebaseTargetCommit.hash}:refs/heads/${branchName}`;
-    await git.push(['--force', 'origin', refSpec]);
+    await simpleGit().push(['--force', 'origin', refSpec]);
   };
 
   const rebaseAndPushTask = new Listr([], {rendererOptions});
