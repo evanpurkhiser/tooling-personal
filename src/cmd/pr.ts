@@ -108,7 +108,7 @@ export default async function pr() {
   // 03. Rebase and push the selected commits
   const doRebase = async () => {
     await simpleGit()
-      .env('GIT_SEQUENCE_EDITOR', `echo "${rebaseContents}" >`)
+      .env({...process.env, GIT_SEQUENCE_EDITOR: `echo "${rebaseContents}" >`})
       .rebase(['--interactive', '--autostash', 'origin/master']);
   };
 
