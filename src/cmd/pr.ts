@@ -95,7 +95,10 @@ export default async function pr() {
   //     the end of the list.
   const rebaseContents = [
     ...selectedShas,
-    ...commits.all.filter(c => !selectedShas.includes(c.hash)).map(c => c.hash),
+    ...commits.all
+      .filter(c => !selectedShas.includes(c.hash))
+      .map(c => c.hash)
+      .reverse(),
   ]
     .map(sha => `pick ${sha}`)
     .join('\n');
