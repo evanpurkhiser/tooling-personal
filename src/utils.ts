@@ -24,6 +24,15 @@ export async function getRepoKey() {
 }
 
 /**
+ * Get the git username from email
+ */
+export async function getEmailUsername() {
+  const email = await simpleGit().raw('config', '--get', 'user.email');
+
+  return email.split('@')[0].toLowerCase();
+}
+
+/**
  * Get's the absolute path to the current git repo
  */
 export async function getRepoPath() {
@@ -44,7 +53,7 @@ export function getHubToken() {
 /**
  * Generates a consistent branch name from a commit message
  */
-export function branchFromMessage(commitMessage: string) {
+export function branchFromMessage(prefix: string, commitMessage: string) {
   const branch = commitMessage
     .toLowerCase()
     .replaceAll(/[^0-9a-zA-Z]/g, '-')

@@ -8,11 +8,12 @@ import {AssigneeType, selectAssignee} from '../assignees';
 import {editPullRequest} from '../editor';
 import {fzfSelect} from '../fzf';
 import {createPull, getGithubRepoId, getPulls, requestReview} from '../pulls';
-import {branchFromMessage, getRepoKey} from '../utils';
+import {branchFromMessage, getEmailUsername, getRepoKey} from '../utils';
 
 const getCommits = () => simpleGit().log({from: 'HEAD', to: 'origin/master'});
 
 export default async function pr() {
+  const username = await getEmailUsername();
   const repo = await getRepoKey();
 
   const rendererOptions = {showTimer: true};
@@ -69,7 +70,7 @@ export default async function pr() {
       prompt: 'Select commit(s) for PR:',
       genValues: addOption =>
         commits.all.forEach(commit => {
-          const branchName = branchFromMessage(commit.message);
+          const branchName = branchFromMessage(username, commit.message);
           const pr = prs.find(pr => pr.headRefName === branchName);
 
           const existingPrLabel =
@@ -104,7 +105,7 @@ export default async function pr() {
     .join('\n');
 
   const targetCommit = selectedCommits[selectedCommits.length - 1];
-  const branchName = branchFromMessage(targetCommit.message);
+  const branchName = branchFromMessage(username, targetCommit.message);
 
   const willOpenPr = prs.some(pr => pr.headRefName === branchName);
 
