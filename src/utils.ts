@@ -5,8 +5,6 @@ import simpleGit from 'simple-git';
 import {readFileSync} from 'fs';
 import path from 'path';
 
-const BRANCH_PREFIX = 'evanpurkhiser/';
-
 /**
  * Get's the current repo information
  */
@@ -60,5 +58,5 @@ export function branchFromMessage(prefix: string, commitMessage: string) {
     .replaceAll(/-+/g, '-')
     .slice(0, 255);
 
-  return BRANCH_PREFIX + branch;
+  return `${prefix}/${branch}`;
 }
