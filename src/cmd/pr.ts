@@ -111,9 +111,17 @@ export default async function pr() {
 
   // 03. Rebase and push the selected commits
   const doRebase = async () => {
-    await simpleGit()
+    const rebase = simpleGit()
       .env({...process.env, GIT_SEQUENCE_EDITOR: `echo "${rebaseContents}" >`})
       .rebase(['--interactive', '--autostash', 'origin/master']);
+
+    try {
+      await rebase;
+    } catch (error) {
+      // Abort a failed rebase
+      await simpleGit().rebase(['--abort']);
+      throw new Error(`Failed to rebase\n${error}`);
+    }
   };
 
   const doPush = async () => {
@@ -140,15 +148,23 @@ export default async function pr() {
   // Cork stdout to avoid listr output polluting vim. We'll uncork after we
   // close vim
   process.stdout.cork();
-  const rebaseAndPush = rebaseAndPushTask.run();
-
-  const {title, body} = await editPullRequest(targetCommit);
 
   // 05. Open an editor to write the pull request
+  const {editor, editorResult} = await editPullRequest(targetCommit);
+
+  const rebaseAndPush = rebaseAndPushTask.run();
+  rebaseAndPush.catch(() => editor.kill());
+
+  const {title, body} = await editorResult;
 
   // XXX: We cork stdout here to avoid listr from corrupting vims output
   process.stdout.uncork();
-  await rebaseAndPush;
+
+  try {
+    await rebaseAndPush;
+  } catch {
+    process.exit(1);
+  }
 
   if (title.length === 0) {
     console.log(chalk.red`Missing PR title, aborting`);

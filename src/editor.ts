@@ -19,11 +19,15 @@ export async function editPullRequest(commit: DefaultLogFields) {
     stdio: 'inherit',
   });
 
-  await new Promise(resolve => editor.on('close', resolve));
-  const prContents = await fs.readFile(pullEditFile).then(b => b.toString());
+  async function getResult() {
+    await new Promise(resolve => editor.on('close', resolve));
+    const prContents = await fs.readFile(pullEditFile).then(b => b.toString());
 
-  const [title, ...bodyParts] = prContents.split('\n');
-  const body = bodyParts.join('\n').trim();
+    const [title, ...bodyParts] = prContents.split('\n');
+    const body = bodyParts.join('\n').trim();
 
-  return {title, body};
+    return {title, body};
+  }
+
+  return {editor, editorResult: getResult()};
 }
