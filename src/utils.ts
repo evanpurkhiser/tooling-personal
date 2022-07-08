@@ -41,11 +41,15 @@ export async function getRepoPath() {
 /**
  * Get's the GitHub Oauth token from the hub config
  */
-export function getHubToken() {
-  const hubFile = path.join(process.env.XDG_CONFIG_HOME ?? '~/.config', 'hub');
+export function getAccessToken() {
+  const hubFile = path.join(
+    process.env.XDG_DATA_HOME ?? '~/.local/share',
+    'tooling-personal',
+    'auth.yml'
+  );
   const hubConfig = yaml.load(readFileSync(hubFile).toString()) as Record<string, any>;
 
-  return hubConfig['github.com'][0]['oauth_token'];
+  return hubConfig['token'];
 }
 
 /**

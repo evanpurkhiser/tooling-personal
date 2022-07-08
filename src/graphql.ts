@@ -1,8 +1,8 @@
 import {GraphQLClient} from 'graphql-request';
 
-import {getHubToken} from './utils';
+import {getAccessToken} from './utils';
 
-const authorization = `Bearer ${getHubToken()}`;
+const authorization = `Bearer ${getAccessToken()}`;
 
 export const githubClient = new GraphQLClient('https://api.github.com/graphql', {
   headers: {authorization},
