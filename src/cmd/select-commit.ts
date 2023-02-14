@@ -7,7 +7,7 @@ export default async function selectCommit() {
   const commits = await simpleGit().log({from: 'HEAD', to: 'origin/master'});
 
   const selected = await fzfSelect<DefaultLogFields>({
-    prompt: 'Select commit(s) for PR:',
+    prompt: 'Select commit(s):',
     genValues: addOption =>
       commits.all.forEach(commit => {
         const shortHash = commit.hash.slice(0, 8);
