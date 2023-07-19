@@ -30,7 +30,7 @@
     "@evanpurkhiser/eslint-config": "^0.10.1",
     "@tsconfig/node16": "^1.0.1",
     "eslint": "^7.31.0",
-    "prettier": "^2.3.2",
+    "prettier": "^3.0.0",
     "ts-node": "^10.1.0",
     "typescript": "^4.3.5"
   },
