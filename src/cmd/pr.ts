@@ -10,7 +10,9 @@ import {fzfSelect} from '../fzf';
 import {createPull, getGithubRepoId, getPulls, requestReview} from '../pulls';
 import {branchFromMessage, getEmailUsername, getRepoKey} from '../utils';
 
-const getCommits = () => simpleGit().log({from: 'HEAD', to: 'origin/master'});
+function getCommits(to: string) {
+  return simpleGit().log({from: 'HEAD', to});
+}
 
 export default async function pr() {
   const username = await getEmailUsername();
@@ -44,7 +46,7 @@ export default async function pr() {
   collectInfoTask.add({
     title: 'Getting unpublished commits',
     task: async (ctx, task) => {
-      const commits = await getCommits();
+      const commits = await getCommits('origin/master');
 
       if (commits.total === 0) {
         throw new Error('No commits to push');
@@ -125,7 +127,7 @@ export default async function pr() {
   };
 
   const doPush = async () => {
-    const newCommits = await getCommits();
+    const newCommits = await getCommits('origin/master');
     const commitIdx = newCommits.all.length - selectedCommits.length;
     const rebaseTargetCommit = newCommits.all[commitIdx];
 
