@@ -11,13 +11,12 @@ jobs:
       - uses: actions/checkout@v3
       - uses: volta-cli/action@v4
       - run: yarn install
-      - run: |
+      - name: bump version
+        run: |
           git config user.name "GitHub Actions"
           git config user.email "<>"
           yarn version --minor --force
           git push
       - run: yarn build
-      - name: yarn publish
-        run: |
-          npm set //registry.npmjs.org/:_authToken ${{ secrets.NPM_AUTH_TOKEN }}
-          yarn publish --access public
+      - run: npm set //registry.npmjs.org/:_authToken ${{ secrets.NPM_AUTH_TOKEN }}
+      - run: npm publish --access=public
