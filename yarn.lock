@@ -39,10 +39,10 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.44.0.tgz#961a5903c74139390478bdc808bcde3fc45ab7af"
   integrity sha512-Ag+9YM4ocKQx9AarydN0KY2j0ErMHNIocPDrVo8zAE44xLTjEtz81OdR68/cydGtk6m6jDb5Za3r2useMzYmSw==
 
-"@evanpurkhiser/eslint-config@^0.17.0":
-  version "0.17.0"
-  resolved "https://registry.yarnpkg.com/@evanpurkhiser/eslint-config/-/eslint-config-0.17.0.tgz#87f3e83b55c87bf84835e5934302fa4caf2b2be5"
-  integrity sha512-FHjfkTLGARuQiqjLsfKRIoLX3lIUAnEnGdnT2Ba91l5kXcffMWkBP4RLSivVBbUfNXMh04LsfA/o1mGhAD1meA==
+"@evanpurkhiser/eslint-config@^0.20.0":
+  version "0.20.0"
+  resolved "https://registry.yarnpkg.com/@evanpurkhiser/eslint-config/-/eslint-config-0.20.0.tgz#d0d08ca9af34252672647563b0ef5537483c8467"
+  integrity sha512-amSesgTdtFIjk+ahXu29VWiSd9k2FFzG5u6EQ7FFik1OjlX8jA8Jq1XhlqC32OEnXg9/QlC7lW+vZ0TEMPl5sQ==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^6.1.0"
     "@typescript-eslint/parser" "^6.1.0"
