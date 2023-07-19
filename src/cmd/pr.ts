@@ -14,7 +14,7 @@ function getCommits(to: string) {
   return simpleGit().log({from: 'HEAD', to});
 }
 
-export default async function pr() {
+export async function pr() {
   const username = await getEmailUsername();
   const repo = await getRepoKey();
 

@@ -3,7 +3,7 @@ import simpleGit, {DefaultLogFields} from 'simple-git';
 
 import {fzfSelect} from '../fzf';
 
-export default async function selectCommit() {
+export async function selectCommit() {
   const commits = await simpleGit().log({from: 'HEAD', to: 'origin/master'});
 
   const selected = await fzfSelect<DefaultLogFields>({

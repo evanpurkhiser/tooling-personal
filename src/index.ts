@@ -3,8 +3,8 @@
 import chalk from 'chalk';
 import yargs from 'yargs';
 
-import pr from './cmd/pr';
-import selectCommit from './cmd/select-commit';
+import {pr} from './cmd/pr';
+import {selectCommit} from './cmd/select-commit';
 
 yargs(process.argv.slice(2))
   .option('color', {
