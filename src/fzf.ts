@@ -21,8 +21,8 @@ interface FzfSelectOpts<O extends Option> {
    */
   prompt: string;
   /**
-   * Function called to insert values into fzf. Input will be
-   * closed to fzf after this function completes.
+   * Function called to insert values into fzf. Input will be closed to fzf
+   * after this function completes.
    */
   genValues: (addOption: AddOptionFn<O>) => Promise<void> | void;
 }
@@ -48,12 +48,19 @@ export async function fzfSelect<O extends Option = Option>({
 
   const options: Record<string, O & OptionExtra> = {};
 
-  await genValues(option => {
+  const valuesDone = genValues(option => {
+    if (fzf.stdin.destroyed) {
+      return;
+    }
     options[option.id] = option;
     fzf.stdin.write(`${option.id}\t${option.label.trim()}\n`);
   });
 
-  fzf.stdin.end();
+  if (valuesDone instanceof Promise) {
+    valuesDone.then(() => fzf.stdin.end());
+  } else {
+    fzf.stdin.end();
+  }
 
   const output = await new Promise<string>(resolve =>
     fzf.stdout.once('data', d => resolve(d.toString()))
