@@ -1,4 +1,4 @@
 module.exports = {
-  env: {browser: true},
-  extends: ['@evanpurkhiser'],
+  env: {node: true},
+  extends: ['@evanpurkhiser/eslint-config/common'],
 };

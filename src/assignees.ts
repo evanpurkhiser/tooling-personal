@@ -12,12 +12,12 @@ export enum AssigneeType {
   Team,
 }
 
-type Assignee = {
+interface Assignee {
   type: AssigneeType;
   id: string;
   slug: string;
   name?: string;
-};
+}
 
 function isUser(obj: any): obj is {repository: Repository} {
   return obj.repository !== undefined;

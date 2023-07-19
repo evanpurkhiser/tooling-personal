@@ -2,7 +2,7 @@ import {spawn} from 'child_process';
 
 type Option = Record<string, any>;
 
-type OptionExtra = {
+interface OptionExtra {
   /**
    * The unqiue key of the option
    */
@@ -11,11 +11,11 @@ type OptionExtra = {
    * The label of the option
    */
   label: string;
-};
+}
 
 type AddOptionFn<O extends Option> = (value: O & OptionExtra) => void;
 
-type FzfSelectOpts<O extends Option> = {
+interface FzfSelectOpts<O extends Option> {
   /**
    * The text displayed at the fzf prompt
    */
@@ -25,7 +25,7 @@ type FzfSelectOpts<O extends Option> = {
    * closed to fzf after this function completes.
    */
   genValues: (addOption: AddOptionFn<O>) => Promise<void> | void;
-};
+}
 
 export async function fzfSelect<O extends Option = Option>({
   prompt,

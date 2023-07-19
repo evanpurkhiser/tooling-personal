@@ -27,9 +27,9 @@
     "yargs": "^17.0.1"
   },
   "devDependencies": {
-    "@evanpurkhiser/eslint-config": "^0.10.1",
+    "@evanpurkhiser/eslint-config": "^0.17.0",
     "@tsconfig/node16": "^1.0.1",
-    "eslint": "^7.31.0",
+    "eslint": "^8.45.0",
     "prettier": "^3.0.0",
     "ts-node": "^10.1.0",
     "typescript": "^4.3.5"
