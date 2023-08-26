@@ -7,8 +7,8 @@ import simpleGit, {DefaultLogFields, LogResult} from 'simple-git';
 import {AssigneeType, selectAssignee} from '../assignees';
 import {editPullRequest} from '../editor';
 import {fzfSelect} from '../fzf';
-import {createPull, getGithubRepoId, getPulls, requestReview} from '../pulls';
-import {branchFromMessage, getEmailUsername, getRepoKey} from '../utils';
+import {createPull, getPulls, getRepoInfo, requestReview} from '../pulls';
+import {branchFromMessage, getBranchNames, getEmailUsername, getRepoKey} from '../utils';
 
 function getCommits(to: string) {
   return simpleGit().log({from: 'HEAD', to});
@@ -17,11 +17,21 @@ function getCommits(to: string) {
 export async function pr() {
   const username = await getEmailUsername();
   const repo = await getRepoKey();
+  const {head, origin} = await getBranchNames();
+
+  if (head === null) {
+    throw new Error('Cannot determine HEAD branch name');
+  }
+
+  if (origin === null) {
+    throw new Error('Cannot determine upstream HEAD branch name');
+  }
 
   const rendererOptions = {showTimer: true};
 
   const collectInfoTask = new Listr<{
     repoId: string;
+    defaultBranch: string;
     commits: LogResult;
     prs: PullRequest[];
   }>([], {
@@ -30,23 +40,24 @@ export async function pr() {
   });
 
   collectInfoTask.add({
-    title: 'Fetching repsotiry ID',
+    title: 'Fetching repository info',
     task: async (ctx, task) => {
-      const repoId = await getGithubRepoId(repo);
+      const details = await getRepoInfo(repo);
 
-      if (repoId === null) {
+      if (details === null) {
         throw new Error('Failed to get repository ID');
       }
 
-      task.title = 'Found repository ID';
-      ctx.repoId = repoId;
+      task.title = 'Found repository';
+      ctx.repoId = details.repoId;
+      ctx.defaultBranch = details.defaultBranch;
     },
   });
 
   collectInfoTask.add({
     title: 'Getting unpublished commits',
     task: async (ctx, task) => {
-      const commits = await getCommits('origin/master');
+      const commits = await getCommits(origin);
 
       if (commits.total === 0) {
         throw new Error('No commits to push');
@@ -65,7 +76,7 @@ export async function pr() {
     },
   });
 
-  const {repoId, commits, prs} = await collectInfoTask.run();
+  const {repoId, defaultBranch, commits, prs} = await collectInfoTask.run();
 
   const selectCommits = () =>
     fzfSelect<DefaultLogFields>({
@@ -115,7 +126,7 @@ export async function pr() {
   const doRebase = async () => {
     const rebase = simpleGit()
       .env({...process.env, GIT_SEQUENCE_EDITOR: `echo "${rebaseContents}" >`})
-      .rebase(['--interactive', '--autostash', 'origin/master']);
+      .rebase(['--interactive', '--autostash', origin]);
 
     try {
       await rebase;
@@ -127,7 +138,7 @@ export async function pr() {
   };
 
   const doPush = async () => {
-    const newCommits = await getCommits('origin/master');
+    const newCommits = await getCommits(origin);
     const commitIdx = newCommits.all.length - selectedCommits.length;
     const rebaseTargetCommit = newCommits.all[commitIdx];
 
@@ -175,7 +186,7 @@ export async function pr() {
 
   // 06. Create a Pull Request
   const pr = createPull({
-    baseRefName: 'master',
+    baseRefName: defaultBranch,
     headRefName: branchName,
     repositoryId: repoId,
     title,

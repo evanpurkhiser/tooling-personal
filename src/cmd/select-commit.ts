@@ -2,9 +2,11 @@ import chalk from 'chalk';
 import simpleGit, {DefaultLogFields} from 'simple-git';
 
 import {fzfSelect} from '../fzf';
+import {getBranchNames} from '../utils';
 
 export async function selectCommit() {
-  const commits = await simpleGit().log({from: 'HEAD', to: 'origin/master'});
+  const {origin} = await getBranchNames();
+  const commits = await simpleGit().log({from: 'HEAD', to: origin});
 
   const selected = await fzfSelect<DefaultLogFields>({
     prompt: 'Select commit(s):',

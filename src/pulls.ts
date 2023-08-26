@@ -8,21 +8,30 @@ import {gql} from 'graphql-request';
 import {paginatedRequest, request} from './graphql';
 import {RepoKey} from './types';
 
-export async function getGithubRepoId(repo: RepoKey) {
+export async function getRepoInfo(repo: RepoKey) {
   const repoGql = gql`
     query repo($owner: String!, $repo: String!) {
       repository(owner: $owner, name: $repo) {
         id
+        defaultBranchRef {
+          name
+        }
       }
     }
   `;
 
+  let resp: any | null = null;
+
   try {
-    const resp = await request(repoGql, {...repo});
-    return resp.repository.id as string;
+    resp = await request(repoGql, {...repo});
   } catch {
     return null;
   }
+
+  return {
+    repoId: resp.repository.id as string,
+    defaultBranch: resp.repository.defaultBranchRef.name as string,
+  };
 }
 
 /**

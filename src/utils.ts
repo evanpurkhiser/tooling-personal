@@ -39,6 +39,28 @@ export async function getRepoPath() {
 }
 
 /**
+ * Get's the "default" head and origin branch names
+ */
+export async function getBranchNames() {
+  let head: null | string = null;
+  let origin: null | string = null;
+
+  try {
+    head = await simpleGit().revparse(['--abbrev-ref', 'HEAD']);
+  } catch {
+    // null
+  }
+
+  try {
+    origin = await simpleGit().revparse(['--abbrev-ref', '@{upstream}']);
+  } catch {
+    // null
+  }
+
+  return {head, origin};
+}
+
+/**
  * Get's the GitHub Oauth token from the hub config
  */
 export function getAccessToken() {
