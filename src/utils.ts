@@ -9,7 +9,7 @@ import path from 'path';
  * Get's the current repo information
  */
 export async function getRepoKey() {
-  const url = await simpleGit().raw('config', '--get', 'remote.origin.url');
+  const url = await simpleGit().listRemote(['--get-url', 'origin']);
   const repo = gitUrlParse(url);
 
   const repoKey = {
