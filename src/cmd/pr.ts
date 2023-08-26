@@ -14,7 +14,14 @@ function getCommits(to: string) {
   return simpleGit().log({from: 'HEAD', to});
 }
 
-export async function pr() {
+interface Args {
+  /**
+   * Create PR as a draft
+   */
+  draft?: boolean;
+}
+
+export async function pr(argv: Args) {
   const username = await getEmailUsername();
   const repo = await getRepoKey();
   const {head, origin} = await getBranchNames();
@@ -189,6 +196,7 @@ export async function pr() {
     baseRefName: defaultBranch,
     headRefName: branchName,
     repositoryId: repoId,
+    draft: argv.draft,
     title,
     body,
   });

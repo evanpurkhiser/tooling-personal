@@ -16,7 +16,12 @@ yargs(process.argv.slice(2))
       chalk.level = args.color ? 3 : 0;
     }
   }, true)
-  .command('pr', 'Create and update PRs', pr)
+  .command(
+    'pr',
+    'Create and update PRs',
+    y => y.option('draft', {alias: 'd', boolean: true, desc: 'Create PR as a draft'}),
+    pr
+  )
   .command('select-commit', 'Select a commit hash', selectCommit)
   .demandCommand(1, '')
   .parse();
