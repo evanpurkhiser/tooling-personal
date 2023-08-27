@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import mergeIterable from 'fast-merge-async-iterators';
 import {gql} from 'graphql-request';
 
+import {config} from './config';
 import {fzfSelect} from './fzf';
 import {paginatedRequest, request} from './graphql';
 import {RepoKey} from './types';
@@ -97,6 +98,10 @@ async function* getAssignees(repo: RepoKey) {
     ? userAssignees
     : mergeIterable(userAssignees, teamAssignees!);
 
+  const assigneeesToIgnore = config
+    .get('ignoreAssignees')
+    .map(value => new RegExp(value));
+
   for await (const result of items) {
     const assignees = isUser(result)
       ? result.repository.assignableUsers.nodes!.map(user => ({
@@ -112,7 +117,12 @@ async function* getAssignees(repo: RepoKey) {
           name: team!.name,
         }));
 
-    yield* assignees as Assignee[];
+    // Remove assignees that are ignored
+    const filteredAssignees = assignees.filter(
+      assignee => !assigneeesToIgnore.some(r => r.test(assignee.slug))
+    );
+
+    yield* filteredAssignees as Assignee[];
   }
 }
 
