@@ -1,9 +1,8 @@
 import gitUrlParse from 'git-url-parse';
-import yaml from 'js-yaml';
 import simpleGit from 'simple-git';
 
-import {readFileSync} from 'fs';
-import path from 'path';
+import {execSync} from 'child_process';
+import {promisify} from 'util';
 
 /**
  * Get's the current repo information
@@ -61,17 +60,14 @@ export async function getBranchNames() {
 }
 
 /**
- * Get's the GitHub Oauth token from the hub config
+ * Get's the GitHub Oauth token from the gh auth token command
  */
 export function getAccessToken() {
-  const hubFile = path.join(
-    process.env.XDG_DATA_HOME ?? '~/.local/share',
-    'tooling-personal',
-    'auth.yml'
-  );
-  const hubConfig = yaml.load(readFileSync(hubFile).toString()) as Record<string, any>;
-
-  return hubConfig['token'];
+  try {
+    return execSync('gh auth token').toString().trim();
+  } catch {
+    throw new Error('Cannot get token from `gh auth token`');
+  }
 }
 
 /**
