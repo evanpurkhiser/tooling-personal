@@ -7,7 +7,13 @@ import simpleGit, {DefaultLogFields, LogResult} from 'simple-git';
 import {AssigneeType, selectAssignee} from '../assignees';
 import {editPullRequest} from '../editor';
 import {fzfSelect} from '../fzf';
-import {createPull, getPulls, getRepoInfo, requestReview} from '../pulls';
+import {
+  createPull,
+  enableAutoMerge,
+  getPulls,
+  getRepoInfo,
+  requestReview,
+} from '../pulls';
 import {branchFromMessage, getBranchNames, getEmailUsername, getRepoKey} from '../utils';
 
 function getCommits(to: string) {
@@ -19,6 +25,10 @@ interface Args {
    * Create PR as a draft
    */
   draft?: boolean;
+  /**
+   * Enable auto merge (squash) for the created PR?
+   */
+  autoMerge?: boolean;
 }
 
 export async function pr(argv: Args) {
@@ -191,15 +201,27 @@ export async function pr(argv: Args) {
     process.exit(1);
   }
 
-  // 06. Create a Pull Request
-  const pr = createPull({
-    baseRefName: defaultBranch,
-    headRefName: branchName,
-    repositoryId: repoId,
-    draft: argv.draft,
-    title,
-    body,
-  });
+  async function makePR() {
+    // 06-a. Create a Pull Request
+    const pr = await createPull({
+      baseRefName: defaultBranch,
+      headRefName: branchName,
+      repositoryId: repoId,
+      draft: argv.draft,
+      title,
+      body,
+    });
+
+    // 06-b. Enable auto merge for the PR
+    if (argv.autoMerge !== undefined) {
+      const pullRequestId = pr.createPullRequest.pullRequest.id;
+      await enableAutoMerge({pullRequestId, mergeMethod: 'SQUASH'});
+    }
+
+    return pr;
+  }
+
+  const pr = makePR();
 
   const reviewers = await selectAssignee(repo);
   const {createPullRequest} = await pr;
