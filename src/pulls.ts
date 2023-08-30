@@ -1,5 +1,6 @@
 import {
   CreatePullRequestInput,
+  EnablePullRequestAutoMergeInput,
   PullRequest,
   RequestReviewsInput,
 } from '@octokit/graphql-schema';
@@ -98,6 +99,23 @@ export function createPull(input: CreatePullRequestInput) {
   `;
 
   return request<{createPullRequest: {pullRequest: PullRequest}}>(prGql, {input});
+}
+
+/**
+ * Enables auto merge for a pull request
+ */
+export function enableAutoMerge(input: EnablePullRequestAutoMergeInput) {
+  const autoMergeGql = gql`
+    mutation enableAutoMerge($input: EnablePullRequestAutoMergeInput!) {
+      enablePullRequestAutoMerge(input: $input) {
+        pullRequest {
+          id
+        }
+      }
+    }
+  `;
+
+  return request<null>(autoMergeGql, {input});
 }
 
 /**

@@ -1,13 +1,20 @@
 import {PullRequest} from '@octokit/graphql-schema';
 import chalk from 'chalk';
-import {Listr} from 'listr2';
+import {ClientError} from 'graphql-request';
+import {Listr, ListrTask} from 'listr2';
 import open from 'open';
 import simpleGit, {DefaultLogFields, LogResult} from 'simple-git';
 
 import {AssigneeType, selectAssignee} from '../assignees';
 import {editPullRequest} from '../editor';
 import {fzfSelect} from '../fzf';
-import {createPull, getPulls, getRepoInfo, requestReview} from '../pulls';
+import {
+  createPull,
+  enableAutoMerge,
+  getPulls,
+  getRepoInfo,
+  requestReview,
+} from '../pulls';
 import {branchFromMessage, getBranchNames, getEmailUsername, getRepoKey} from '../utils';
 
 function getCommits(to: string) {
@@ -19,6 +26,10 @@ interface Args {
    * Create PR as a draft
    */
   draft?: boolean;
+  /**
+   * Enable auto merge (squash) for the created PR?
+   */
+  autoMerge?: boolean;
 }
 
 export async function pr(argv: Args) {
@@ -191,18 +202,54 @@ export async function pr(argv: Args) {
     process.exit(1);
   }
 
-  // 06. Create a Pull Request
-  const pr = createPull({
-    baseRefName: defaultBranch,
-    headRefName: branchName,
-    repositoryId: repoId,
-    draft: argv.draft,
-    title,
-    body,
+  interface CreatePrTask {
+    pr: PullRequest;
+  }
+
+  const createPrTask: ListrTask<CreatePrTask>['task'] = async ctx => {
+    const pr = await createPull({
+      baseRefName: defaultBranch,
+      headRefName: branchName,
+      repositoryId: repoId,
+      draft: argv.draft,
+      title,
+      body,
+    });
+    ctx.pr = pr.createPullRequest.pullRequest;
+  };
+
+  const setAutoMergeTask: ListrTask<CreatePrTask>['task'] = async (ctx, task) => {
+    const pullRequestId = ctx.pr.id;
+
+    try {
+      await enableAutoMerge({pullRequestId, mergeMethod: 'SQUASH'});
+    } catch (err) {
+      task.skip('Auto Merge not available');
+    }
+  };
+
+  const prTasks = new Listr<CreatePrTask>([], {rendererOptions});
+
+  // 06-a. Create a Pull Request
+  prTasks.add({
+    title: 'Creating Pull Request',
+    task: createPrTask,
   });
 
+  // 06-a. Enable auto merge
+  prTasks.add({
+    enabled: !!argv.autoMerge,
+    title: 'Enabling auto merge',
+    task: setAutoMergeTask,
+  });
+
+  const asyncPrTasks = prTasks.run();
+
+  // Do not let asyncPrTasks interfere with assignee selection
+  process.stdout.cork();
   const reviewers = await selectAssignee(repo);
-  const {createPullRequest} = await pr;
+  const {pr} = await asyncPrTasks;
+  process.stdout.uncork();
 
   // 07. Request reviews
   const reviewRequestTask = new Listr([], {rendererOptions});
@@ -212,7 +259,7 @@ export async function pr(argv: Args) {
     title: 'Requesting Reviewers',
     task: () =>
       requestReview({
-        pullRequestId: createPullRequest.pullRequest.id,
+        pullRequestId: pr.id,
         userIds: reviewers.filter(a => a.type === AssigneeType.User).map(a => a.id),
         teamIds: reviewers.filter(a => a.type === AssigneeType.Team).map(a => a.id),
       }),
@@ -221,5 +268,5 @@ export async function pr(argv: Args) {
   await reviewRequestTask.run();
 
   // 08. Open in browser
-  open(createPullRequest.pullRequest.url);
+  open(pr.url);
 }

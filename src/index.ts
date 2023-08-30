@@ -19,7 +19,18 @@ yargs(process.argv.slice(2))
   .command(
     'pr',
     'Create and update PRs',
-    y => y.option('draft', {alias: 'd', boolean: true, desc: 'Create PR as a draft'}),
+    y =>
+      y
+        .option('draft', {
+          alias: 'd',
+          boolean: true,
+          desc: 'Create PR as a draft',
+        })
+        .option('autoMerge', {
+          alias: 'm',
+          boolean: true,
+          desc: 'Enable auto merge for the PR',
+        }),
     pr
   )
   .command('select-commit', 'Select a commit hash', selectCommit)
