@@ -4,7 +4,7 @@ type Option = Record<string, any>;
 
 interface OptionExtra {
   /**
-   * The unqiue key of the option
+   * The unique key of the option
    */
   id: string;
   /**
