@@ -1,6 +1,5 @@
 import {PullRequest} from '@octokit/graphql-schema';
 import chalk from 'chalk';
-import {ClientError} from 'graphql-request';
 import {Listr, ListrTask} from 'listr2';
 import open from 'open';
 import simpleGit, {DefaultLogFields, LogResult} from 'simple-git';
@@ -223,7 +222,7 @@ export async function pr(argv: Args) {
 
     try {
       await enableAutoMerge({pullRequestId, mergeMethod: 'SQUASH'});
-    } catch (err) {
+    } catch {
       task.skip('Auto Merge not available');
     }
   };

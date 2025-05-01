@@ -1,5 +1,4 @@
-/* eslint-env node*/
-module.exports = {
+const config = {
   bracketSpacing: false,
   jsxBracketSameLine: false,
   printWidth: 90,
@@ -9,5 +8,6 @@ module.exports = {
   trailingComma: 'es5',
   useTabs: false,
   arrowParens: 'avoid',
-  endOfLine: 'auto',
 };
+
+export default config;

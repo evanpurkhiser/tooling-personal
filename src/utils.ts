@@ -2,7 +2,6 @@ import gitUrlParse from 'git-url-parse';
 import simpleGit from 'simple-git';
 
 import {execSync} from 'child_process';
-import {promisify} from 'util';
 
 /**
  * Get's the current repo information
