@@ -31,8 +31,8 @@
   "devDependencies": {
     "@evanpurkhiser/eslint-config": "^0.25.0",
     "@tsconfig/node16": "^1.0.1",
-    "eslint": "^9.25.1",
-    "prettier": "^3.5.3",
+    "eslint": "^9.30.0",
+    "prettier": "^3.6.2",
     "ts-node": "^10.1.0",
     "typescript": "^5.8.3"
   },
@@ -44,7 +44,7 @@
     "pt": "./dist/index.js"
   },
   "volta": {
-    "node": "22.11.0",
+    "node": "24.3.0",
     "yarn": "1.22.19"
   }
 }
