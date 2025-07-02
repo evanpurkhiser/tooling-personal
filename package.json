@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@evanpurkhiser/tooling-personal",
-  "version": "1.35.0",
+  "version": "1.36.0",
   "description": "Evan Purkhiser's personal tooling",
   "repository": "https://github.com/evanpurkhiser/tooling-personal",
   "author": "Evan Purkhiser",
