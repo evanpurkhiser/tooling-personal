@@ -8,14 +8,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: volta-cli/action@v4
-      - run: yarn install
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install
       - name: bump version
         run: |
           git config user.name "GitHub Actions"
           git config user.email "<>"
-          yarn version --minor --force
+          pnpm version minor
           git push
       - run: yarn build
       - run: npm set //registry.npmjs.org/:_authToken ${{ secrets.NPM_AUTH_TOKEN }}
