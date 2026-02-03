@@ -1,5 +1,7 @@
 ## Evan Purkhiser's Personal Tooling
 
+[![publish](https://github.com/evanpurkhiser/tooling-personal/actions/workflows/main.yml/badge.svg)](https://github.com/evanpurkhiser/tooling-personal/actions/workflows/main.yml)
+
 This is a set of tools I use in my day to day at work.
 
 ### `pr`: Pull Request automation
