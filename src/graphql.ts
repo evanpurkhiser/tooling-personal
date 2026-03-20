@@ -14,7 +14,7 @@ export const githubClient = new GraphQLClient('https://api.github.com/graphql', 
 export async function* paginatedRequest<T = any>(
   query: string,
   variables: Record<string, any>,
-  pickCursor: (obj: any) => {endCursor: string; hasNextPage: boolean}
+  pickCursor: (obj: any) => {endCursor: string; hasNextPage: boolean},
 ) {
   let hasNextPage = true;
   let cursor: string | null = null;

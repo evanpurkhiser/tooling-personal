@@ -83,7 +83,7 @@ async function* getAssignees(repo: RepoKey) {
   const userAssignees = paginatedRequest<{repository: Repository}>(
     assigneesGql,
     {...repo},
-    (obj: any) => obj.repository.assignableUsers.pageInfo
+    (obj: any) => obj.repository.assignableUsers.pageInfo,
   );
 
   const teamAssignees = !isOrganization
@@ -91,7 +91,7 @@ async function* getAssignees(repo: RepoKey) {
     : paginatedRequest<{organization: Organization}>(
         teamGql,
         {owner: repo.owner},
-        (obj: any) => obj.organization.teams.pageInfo
+        (obj: any) => obj.organization.teams.pageInfo,
       );
 
   const items = !isOrganization
@@ -119,7 +119,7 @@ async function* getAssignees(repo: RepoKey) {
 
     // Remove assignees that are ignored
     const filteredAssignees = assignees.filter(
-      assignee => !assigneeesToIgnore.some(r => r.test(assignee.slug))
+      assignee => !assigneeesToIgnore.some(r => r.test(assignee.slug)),
     );
 
     yield* filteredAssignees as Assignee[];

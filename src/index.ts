@@ -31,7 +31,7 @@ yargs(process.argv.slice(2))
           boolean: true,
           desc: 'Enable auto merge for the PR',
         }),
-    pr
+    pr,
   )
   .command('select-commit', 'Select a commit hash', selectCommit)
   .demandCommand(1, '')

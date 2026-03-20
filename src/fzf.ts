@@ -41,7 +41,7 @@ export async function fzfSelect<O extends Option = Option>({
       '--with-nth=2..',
       '-m',
     ],
-    {shell: true, stdio: ['pipe', 'pipe', 'inherit']}
+    {shell: true, stdio: ['pipe', 'pipe', 'inherit']},
   );
 
   fzf.stdin.setDefaultEncoding('utf-8');
@@ -63,7 +63,7 @@ export async function fzfSelect<O extends Option = Option>({
   }
 
   const output = await new Promise<string>(resolve =>
-    fzf.stdout.once('data', d => resolve(d.toString()))
+    fzf.stdout.once('data', d => resolve(d.toString())),
   );
 
   return output

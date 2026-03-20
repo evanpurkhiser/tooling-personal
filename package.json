@@ -3,13 +3,20 @@
   "name": "@evanpurkhiser/tooling-personal",
   "version": "1.39.0",
   "description": "Evan Purkhiser's personal tooling",
-  "repository": "https://github.com/evanpurkhiser/tooling-personal",
-  "author": "Evan Purkhiser",
   "license": "MIT",
+  "author": "Evan Purkhiser",
+  "repository": "https://github.com/evanpurkhiser/tooling-personal",
+  "bin": {
+    "pt": "./dist/index.js"
+  },
   "files": [
     "dist/**",
     "README.md"
   ],
+  "scripts": {
+    "build": "tsc && chmod +x ./dist/index.js",
+    "start": "ts-node ./src/index.ts"
+  },
   "dependencies": {
     "@octokit/graphql-schema": "^10.54.0",
     "@types/convict": "^6.1.3",
@@ -33,16 +40,9 @@
     "@evanpurkhiser/eslint-config": "^0.27.0",
     "@tsconfig/node16": "^1.0.1",
     "eslint": "^9.30.1",
-    "prettier": "^3.6.2",
+    "oxfmt": "^0.41.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
-  },
-  "scripts": {
-    "build": "tsc && chmod +x ./dist/index.js",
-    "start": "ts-node ./src/index.ts"
-  },
-  "bin": {
-    "pt": "./dist/index.js"
   },
   "volta": {
     "node": "24.3.0"

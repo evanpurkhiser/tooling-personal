@@ -71,7 +71,7 @@ export async function getPulls(repo: RepoKey) {
       }
     `,
     {query: `is:pr is:open author:${author} repo:${repo.fullName}`},
-    (obj: any) => obj.search.pageInfo
+    (obj: any) => obj.search.pageInfo,
   );
 
   const prs: PullRequest[] = [];
