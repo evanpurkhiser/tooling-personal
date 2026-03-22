@@ -5,5 +5,7 @@
     "module": "CommonJS",
     "outDir": "./dist",
     "lib": ["ESNext"]
-  }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["oxfmt.config.ts", "oxlint.config.ts"]
 }
