@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc && chmod +x ./dist/index.js",
     "start": "ts-node ./src/index.ts",
-    "lint": "oxlint src/**/*.ts",
+    "lint": "oxlint src",
     "format": "oxfmt .",
     "format:check": "oxfmt --check ."
   },
