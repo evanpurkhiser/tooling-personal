@@ -13,7 +13,7 @@ export enum AssigneeType {
   Team,
 }
 
-interface Assignee {
+export interface Assignee {
   type: AssigneeType;
   id: string;
   slug: string;
@@ -27,7 +27,7 @@ function isUser(obj: any): obj is {repository: Repository} {
 /**
  * Generates a list of assignable teams and users
  */
-async function* getAssignees(repo: RepoKey) {
+export async function* getAssignees(repo: RepoKey) {
   const assigneesGql = gql`
     query userAssignees($owner: String!, $repo: String!, $cursor: String) {
       repository(owner: $owner, name: $repo) {
