@@ -21,6 +21,10 @@ interface FzfSelectOpts<O extends Option> {
    */
   prompt: string;
   /**
+   * Allow selecting more than one option (fzf -m). Defaults to true.
+   */
+  multi?: boolean;
+  /**
    * Function called to insert values into fzf. Input will be closed to fzf
    * after this function completes.
    */
@@ -29,20 +33,22 @@ interface FzfSelectOpts<O extends Option> {
 
 export async function fzfSelect<O extends Option = Option>({
   prompt,
+  multi = true,
   genValues,
 }: FzfSelectOpts<O>) {
-  const fzf = spawn(
-    'fzf',
-    [
-      '--ansi',
-      '--height=40%',
-      '--reverse',
-      `--header="${prompt}"`,
-      '--with-nth=2..',
-      '-m',
-    ],
-    {shell: true, stdio: ['pipe', 'pipe', 'inherit']},
-  );
+  const fzfArgs = [
+    '--ansi',
+    '--height=40%',
+    '--reverse',
+    `--header="${prompt}"`,
+    '--with-nth=2..',
+  ];
+
+  if (multi) {
+    fzfArgs.push('-m');
+  }
+
+  const fzf = spawn('fzf', fzfArgs, {shell: true, stdio: ['pipe', 'pipe', 'inherit']});
 
   fzf.stdin.setDefaultEncoding('utf-8');
 
