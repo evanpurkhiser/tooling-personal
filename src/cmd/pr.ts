@@ -5,6 +5,7 @@ import open from 'open';
 import simpleGit, {DefaultLogFields, LogResult} from 'simple-git';
 
 import {AssigneeType, selectAssignee} from '../assignees';
+import {cherryPickOnto} from '../cherry-pick';
 import {editPullRequest} from '../editor';
 import {fzfSelect} from '../fzf';
 import {
@@ -128,47 +129,23 @@ export async function pr(argv: Args) {
   const branchName = branchFromMessage(username, selectedCommit.message);
   const willOpenPr = prs.some(pr => pr.headRefName === branchName);
 
-  // 02. Rebase the selected commit to the tip of origin and push it
-  const rebaseContents = [
-    selectedCommit.hash,
-    ...commits.all
-      .filter(c => c.hash !== selectedCommit.hash)
-      .map(c => c.hash)
-      .reverse(),
-  ]
-    .map(sha => `pick ${sha}`)
-    .join('\n');
-
-  const doRebase = async () => {
-    const rebase = simpleGit()
-      .env({...process.env, GIT_SEQUENCE_EDITOR: `echo "${rebaseContents}" >`})
-      .rebase(['--interactive', '--autostash', origin]);
-
-    try {
-      await rebase;
-    } catch (error) {
-      await simpleGit().rebase(['--abort']);
-      throw new Error(`Failed to rebase\n${error}`);
-    }
-  };
-
+  // 02. Build a branch-tip commit by cherry-picking the selected commit onto
+  //     origin/<default> via plumbing, then push that commit. Local main is
+  //     never touched.
   const doPush = async () => {
-    const newCommits = await getCommits(origin);
-    const rebaseTargetCommit = newCommits.all[newCommits.all.length - 1];
-
-    const refSpec = `${rebaseTargetCommit.hash}:refs/heads/${branchName}`;
+    const newSha = await cherryPickOnto(selectedCommit.hash, origin);
+    const refSpec = `${newSha}:refs/heads/${branchName}`;
     await simpleGit().push(['--force', 'origin', refSpec]);
   };
 
-  const rebaseAndPushTask = new Listr([], {rendererOptions});
+  const pushTask = new Listr([], {rendererOptions});
 
-  rebaseAndPushTask.add({title: 'Rebasing commit', task: doRebase});
-  rebaseAndPushTask.add({title: 'Pushing to GitHub', task: doPush});
+  pushTask.add({title: 'Building and pushing commit', task: doPush});
 
   // 03. Nothing left to do if we just updated an existing
   //     pull request.
   if (willOpenPr) {
-    await rebaseAndPushTask.run();
+    await pushTask.run();
     return;
   }
 
@@ -179,8 +156,8 @@ export async function pr(argv: Args) {
   // 04. Open an editor to write the pull request
   const {editor, editorResult} = await editPullRequest(selectedCommit);
 
-  const rebaseAndPush = rebaseAndPushTask.run();
-  rebaseAndPush.catch(() => editor.kill());
+  const pushPromise = pushTask.run();
+  pushPromise.catch(() => editor.kill());
 
   const {title, body} = await editorResult;
 
@@ -188,7 +165,7 @@ export async function pr(argv: Args) {
   process.stdout.uncork();
 
   try {
-    await rebaseAndPush;
+    await pushPromise;
   } catch {
     process.exit(1);
   }
