@@ -95,9 +95,10 @@ export async function pr(argv: Args) {
 
   const {repoId, defaultBranch, commits, prs} = await collectInfoTask.run();
 
-  const selectCommits = () =>
+  const pickCommit = () =>
     fzfSelect<DefaultLogFields>({
-      prompt: 'Select commit(s) for PR:',
+      prompt: 'Select commit for PR:',
+      multi: false,
       genValues: addOption =>
         commits.all.forEach(commit => {
           const branchName = branchFromMessage(username, commit.message);
@@ -113,33 +114,31 @@ export async function pr(argv: Args) {
         }),
     });
 
-  // 01. Select which commits to turn into PRs
-  const selectedCommits =
+  // 01. Select which commit to turn into a PR
+  const selectedCommit =
     commits.total === 1
-      ? [{id: commits.all[0].hash, ...commits.all[0]}]
-      : await selectCommits();
+      ? {id: commits.all[0].hash, ...commits.all[0]}
+      : (await pickCommit())[0];
 
-  const selectedShas = selectedCommits.map(option => option.hash);
+  if (!selectedCommit) {
+    console.log(chalk.red`No commit selected, aborting`);
+    process.exit(1);
+  }
 
-  // 02. Re-order our commits when there are multiple
-  //     commits and the selected commits are not already at
-  //     the end of the list.
+  const branchName = branchFromMessage(username, selectedCommit.message);
+  const willOpenPr = prs.some(pr => pr.headRefName === branchName);
+
+  // 02. Rebase the selected commit to the tip of origin and push it
   const rebaseContents = [
-    ...selectedShas,
+    selectedCommit.hash,
     ...commits.all
-      .filter(c => !selectedShas.includes(c.hash))
+      .filter(c => c.hash !== selectedCommit.hash)
       .map(c => c.hash)
       .reverse(),
   ]
     .map(sha => `pick ${sha}`)
     .join('\n');
 
-  const targetCommit = selectedCommits[selectedCommits.length - 1];
-  const branchName = branchFromMessage(username, targetCommit.message);
-
-  const willOpenPr = prs.some(pr => pr.headRefName === branchName);
-
-  // 03. Rebase and push the selected commits
   const doRebase = async () => {
     const rebase = simpleGit()
       .env({...process.env, GIT_SEQUENCE_EDITOR: `echo "${rebaseContents}" >`})
@@ -148,7 +147,6 @@ export async function pr(argv: Args) {
     try {
       await rebase;
     } catch (error) {
-      // Abort a failed rebase
       await simpleGit().rebase(['--abort']);
       throw new Error(`Failed to rebase\n${error}`);
     }
@@ -156,8 +154,7 @@ export async function pr(argv: Args) {
 
   const doPush = async () => {
     const newCommits = await getCommits(origin);
-    const commitIdx = newCommits.all.length - selectedCommits.length;
-    const rebaseTargetCommit = newCommits.all[commitIdx];
+    const rebaseTargetCommit = newCommits.all[newCommits.all.length - 1];
 
     const refSpec = `${rebaseTargetCommit.hash}:refs/heads/${branchName}`;
     await simpleGit().push(['--force', 'origin', refSpec]);
@@ -165,10 +162,10 @@ export async function pr(argv: Args) {
 
   const rebaseAndPushTask = new Listr([], {rendererOptions});
 
-  rebaseAndPushTask.add({title: 'Rebasing commits', task: doRebase});
+  rebaseAndPushTask.add({title: 'Rebasing commit', task: doRebase});
   rebaseAndPushTask.add({title: 'Pushing to GitHub', task: doPush});
 
-  // 04. Nothing left to do if we just updated an existing
+  // 03. Nothing left to do if we just updated an existing
   //     pull request.
   if (willOpenPr) {
     await rebaseAndPushTask.run();
@@ -179,8 +176,8 @@ export async function pr(argv: Args) {
   // close vim
   process.stdout.cork();
 
-  // 05. Open an editor to write the pull request
-  const {editor, editorResult} = await editPullRequest(targetCommit);
+  // 04. Open an editor to write the pull request
+  const {editor, editorResult} = await editPullRequest(selectedCommit);
 
   const rebaseAndPush = rebaseAndPushTask.run();
   rebaseAndPush.catch(() => editor.kill());
@@ -229,13 +226,13 @@ export async function pr(argv: Args) {
 
   const prTasks = new Listr<CreatePrTask>([], {rendererOptions});
 
-  // 06-a. Create a Pull Request
+  // 05-a. Create a Pull Request
   prTasks.add({
     title: 'Creating Pull Request',
     task: createPrTask,
   });
 
-  // 06-a. Enable auto merge
+  // 05-b. Enable auto merge
   prTasks.add({
     enabled: !!argv.autoMerge,
     title: 'Enabling auto merge',
@@ -250,7 +247,7 @@ export async function pr(argv: Args) {
   const {pr} = await asyncPrTasks;
   process.stdout.uncork();
 
-  // 07. Request reviews
+  // 06. Request reviews
   const reviewRequestTask = new Listr([], {rendererOptions});
 
   reviewRequestTask.add({
@@ -266,6 +263,6 @@ export async function pr(argv: Args) {
 
   await reviewRequestTask.run();
 
-  // 08. Open in browser
+  // 07. Open in browser
   open(pr.url);
 }
