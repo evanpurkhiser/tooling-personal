@@ -76,7 +76,19 @@ export async function suggestAssignees(argv: Args) {
 
   const fileHunks = parseDiff(diff);
   if (fileHunks.length === 0) {
-    throw new Error(`No files with prior history in ${label}`);
+    console.error(`No files with prior history in ${label}`);
+    if (argv.format === 'slugs') {
+      console.log('');
+    } else {
+      console.log(
+        JSON.stringify(
+          {source: label, fileTotal: 0, hunkTotal: 0, suggestions: [], unresolved: []},
+          null,
+          2,
+        ),
+      );
+    }
+    return;
   }
 
   // 02. Blame every file + resolve the repo's assignable user directory
