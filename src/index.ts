@@ -6,6 +6,7 @@ import yargs from 'yargs';
 import {pr} from './cmd/pr';
 import {prCreate} from './cmd/pr-create';
 import {selectCommit} from './cmd/select-commit';
+import {suggestAssignees} from './cmd/suggest-assignees';
 
 yargs(process.argv.slice(2))
   .option('color', {
@@ -72,6 +73,37 @@ yargs(process.argv.slice(2))
           desc: 'Do not open the PR in the browser after creation',
         }),
     prCreate,
+  )
+  .command(
+    'suggest-assignees',
+    'Suggest reviewers for current diff based on blame ownership',
+    y =>
+      y
+        .option('commit', {
+          type: 'string',
+          desc: 'Analyze the files changed in this commit instead of staged changes',
+        })
+        .option('limit', {
+          type: 'number',
+          default: 3,
+          desc: 'Max number of suggestions',
+        })
+        .option('format', {
+          type: 'string',
+          choices: ['slugs', 'json'] as const,
+          default: 'slugs' as const,
+          desc: 'Output format',
+        })
+        .option('hunkWeight', {
+          type: 'number',
+          default: 0.7,
+          desc: 'Weight of hunk-level ownership vs whole-file ownership (0..1)',
+        })
+        .option('refresh', {
+          boolean: true,
+          desc: 'Ignore the cached assignable-users list and refetch',
+        }),
+    suggestAssignees,
   )
   .command('select-commit', 'Select a commit hash', selectCommit)
   .demandCommand(1, '')
