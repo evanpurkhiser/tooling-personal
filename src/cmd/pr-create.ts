@@ -70,8 +70,8 @@ async function resolveReviewers(repo: RepoKey, slugs: string[]): Promise<Assigne
 }
 
 export async function prCreate(argv: Args) {
-  if (!argv.title) {
-    throw new Error('--title is required');
+  if (!argv.title && !argv.updateOnly) {
+    throw new Error('--title is required when creating a PR');
   }
 
   const username = await getEmailUsername();
