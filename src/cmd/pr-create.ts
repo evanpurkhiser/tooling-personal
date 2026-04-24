@@ -20,7 +20,6 @@ interface Args {
   reviewer?: string;
   draft?: boolean;
   autoMerge?: boolean;
-  updateOnly?: boolean;
   noOpen?: boolean;
 }
 
@@ -70,10 +69,6 @@ async function resolveReviewers(repo: RepoKey, slugs: string[]): Promise<Assigne
 }
 
 export async function prCreate(argv: Args) {
-  if (!argv.title && !argv.updateOnly) {
-    throw new Error('--title is required when creating a PR');
-  }
-
   const username = await getEmailUsername();
   const repo = await getRepoKey();
   const {head, origin} = await getBranchNames();
@@ -108,28 +103,20 @@ export async function prCreate(argv: Args) {
   const branchName = branchFromMessage(username, commit.message);
   const existingPr = prs.find(p => p.headRefName === branchName);
 
-  if (argv.updateOnly && !existingPr) {
-    throw new Error(`No existing PR for branch ${branchName}`);
+  if (existingPr) {
+    throw new Error(
+      `PR already exists for branch ${branchName} (#${existingPr.number}). Use 'pr-update' to push changes.`,
+    );
   }
 
   const reviewerSlugs = parseSlugs(argv.reviewer);
-  // Reviewers only apply on PR creation (matches `pt pr` behavior).
-  const reviewers = existingPr ? [] : await resolveReviewers(repo, reviewerSlugs);
+  const reviewers = await resolveReviewers(repo, reviewerSlugs);
 
   console.error(chalk.gray(`Cherry-picking ${commit.hash.slice(0, 8)} onto ${origin}`));
   const newSha = await cherryPickOnto(commit.hash, origin);
 
   console.error(chalk.gray(`Pushing ${branchName}`));
   await simpleGit().push(['--force', 'origin', `${newSha}:refs/heads/${branchName}`]);
-
-  if (existingPr) {
-    const url = `https://github.com/${repo.fullName}/pull/${existingPr.number}`;
-    console.error(
-      chalk.green(`Updated existing PR #${existingPr.number}: ${existingPr.title}`),
-    );
-    console.log(url);
-    return;
-  }
 
   console.error(chalk.gray('Creating Pull Request'));
   const {createPullRequest} = await createPull({

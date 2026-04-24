@@ -5,6 +5,7 @@ import yargs from 'yargs';
 
 import {pr} from './cmd/pr';
 import {prCreate} from './cmd/pr-create';
+import {prUpdate} from './cmd/pr-update';
 import {selectCommit} from './cmd/select-commit';
 import {suggestAssignees} from './cmd/suggest-assignees';
 
@@ -37,7 +38,7 @@ yargs(process.argv.slice(2))
   )
   .command(
     'pr-create <sha>',
-    'Non-interactively create or update a PR for a single commit. Body is read from stdin.',
+    'Non-interactively create a PR for a single commit. Body is read from stdin.',
     y =>
       y
         .positional('sha', {
@@ -64,15 +65,22 @@ yargs(process.argv.slice(2))
           boolean: true,
           desc: 'Enable auto merge for the PR',
         })
-        .option('updateOnly', {
-          boolean: true,
-          desc: 'Only update an existing PR; fail if none exists for the generated branch',
-        })
         .option('noOpen', {
           boolean: true,
           desc: 'Do not open the PR in the browser after creation',
         }),
     prCreate,
+  )
+  .command(
+    'pr-update <sha>',
+    'Non-interactively push an amended commit to its existing PR branch.',
+    y =>
+      y.positional('sha', {
+        type: 'string',
+        demandOption: true,
+        desc: 'Commit SHA (full or prefix) whose PR branch should be updated',
+      }),
+    prUpdate,
   )
   .command(
     'suggest-assignees',
