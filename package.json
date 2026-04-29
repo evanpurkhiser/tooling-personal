@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc && chmod +x ./dist/index.js",
     "start": "ts-node ./src/index.ts",
-    "lint": "oxlint src",
+    "lint": "oxlint src/",
     "format": "oxfmt .",
     "format:check": "oxfmt --check ."
   },
@@ -40,10 +40,10 @@
     "yargs": "^17.0.1"
   },
   "devDependencies": {
-    "@evanpurkhiser/oxc-config": "^0.5.0",
+    "@evanpurkhiser/oxc-config": "^0.8.0",
     "@tsconfig/node16": "^1.0.1",
-    "oxfmt": "^0.41.0",
-    "oxlint": "^1.56.0",
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.62.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
