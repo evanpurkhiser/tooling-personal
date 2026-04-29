@@ -9,8 +9,8 @@ import {paginatedRequest, request} from './graphql';
 import type {RepoKey} from './types';
 
 export enum AssigneeType {
-  User,
-  Team,
+  User = 'user',
+  Team = 'team',
 }
 
 export interface Assignee {

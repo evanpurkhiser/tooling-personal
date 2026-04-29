@@ -1,9 +1,9 @@
 import convict from 'convict';
-import yaml from 'js-yaml';
+import {load} from 'js-yaml';
 
 import {join} from 'node:path';
 
-convict.addParser({extension: ['yml', 'yaml'], parse: yaml.load});
+convict.addParser({extension: ['yml', 'yaml'], parse: load});
 
 interface Config {
   /**
