@@ -1,7 +1,7 @@
 import gitUrlParse from 'git-url-parse';
 import simpleGit from 'simple-git';
 
-import {execSync} from 'child_process';
+import {execSync} from 'node:child_process';
 
 /**
  * Get's the current repo information

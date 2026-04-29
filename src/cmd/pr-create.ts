@@ -2,7 +2,8 @@ import chalk from 'chalk';
 import open from 'open';
 import simpleGit from 'simple-git';
 
-import {Assignee, AssigneeType, getAssignees} from '../assignees';
+import type {Assignee} from '../assignees';
+import {AssigneeType, getAssignees} from '../assignees';
 import {cherryPickOnto} from '../cherry-pick';
 import {
   createPull,
@@ -11,7 +12,7 @@ import {
   getRepoInfo,
   requestReview,
 } from '../pulls';
-import {RepoKey} from '../types';
+import type {RepoKey} from '../types';
 import {branchFromMessage, getBranchNames, getEmailUsername, getRepoKey} from '../utils';
 
 interface Args {

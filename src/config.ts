@@ -1,7 +1,7 @@
 import convict from 'convict';
 import yaml from 'js-yaml';
 
-import {join} from 'path';
+import {join} from 'node:path';
 
 convict.addParser({extension: ['yml', 'yaml'], parse: yaml.load});
 

@@ -33,6 +33,7 @@ export async function cherryPickOnto(sha: string, base: string): Promise<string>
   } catch (error) {
     throw new Error(
       `Conflicts applying ${sha.slice(0, 8)} onto ${base}. Rebase locally and retry.\n${error}`,
+      {cause: error},
     );
   }
 

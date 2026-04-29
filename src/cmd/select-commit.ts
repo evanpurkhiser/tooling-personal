@@ -1,5 +1,6 @@
 import chalk from 'chalk';
-import simpleGit, {DefaultLogFields} from 'simple-git';
+import type {DefaultLogFields} from 'simple-git';
+import simpleGit from 'simple-git';
 
 import {fzfSelect} from '../fzf';
 import {getBranchNames} from '../utils';

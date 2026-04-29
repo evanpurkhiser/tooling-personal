@@ -147,7 +147,7 @@ export async function blameFile(
     }
 
     if (line.startsWith('author-mail ')) {
-      const email = line.slice('author-mail '.length).replace(/^<|>$/g, '');
+      const email = line.slice('author-mail '.length).replaceAll(/^<|>$/g, '');
       if (!shaToEmail.has(last.sha)) {
         shaToEmail.set(last.sha, email);
       }

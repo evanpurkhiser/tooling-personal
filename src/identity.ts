@@ -1,11 +1,11 @@
-import {Repository} from '@octokit/graphql-schema';
+import type {Repository} from '@octokit/graphql-schema';
 import {gql} from 'graphql-request';
 
-import fs from 'fs/promises';
-import {join} from 'path';
+import fs from 'node:fs/promises';
+import {join} from 'node:path';
 
 import {paginatedRequest} from './graphql';
-import {RepoKey} from './types';
+import type {RepoKey} from './types';
 
 interface CachedUser {
   login: string;
@@ -107,8 +107,8 @@ function parseNoreplyLogin(email: string): string | null {
  */
 function normalizeName(name: string): string {
   return name
-    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replaceAll(/\s+/g, ' ')
     .trim()
     .toLowerCase();
 }

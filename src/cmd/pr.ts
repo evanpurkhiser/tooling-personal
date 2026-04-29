@@ -1,8 +1,10 @@
-import {PullRequest} from '@octokit/graphql-schema';
+import type {PullRequest} from '@octokit/graphql-schema';
 import chalk from 'chalk';
-import {Listr, ListrTask} from 'listr2';
+import type {ListrTask} from 'listr2';
+import {Listr} from 'listr2';
 import open from 'open';
-import simpleGit, {DefaultLogFields, LogResult} from 'simple-git';
+import type {DefaultLogFields, LogResult} from 'simple-git';
+import simpleGit from 'simple-git';
 
 import {AssigneeType, selectAssignee} from '../assignees';
 import {cherryPickOnto} from '../cherry-pick';
@@ -211,7 +213,7 @@ export async function pr(argv: Args) {
 
   // 05-b. Enable auto merge
   prTasks.add({
-    enabled: !!argv.autoMerge,
+    enabled: Boolean(argv.autoMerge),
     title: 'Enabling auto merge',
     task: setAutoMergeTask,
   });

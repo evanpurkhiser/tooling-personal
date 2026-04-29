@@ -1,4 +1,4 @@
-import {
+import type {
   CreatePullRequestInput,
   EnablePullRequestAutoMergeInput,
   PullRequest,
@@ -7,7 +7,7 @@ import {
 import {gql} from 'graphql-request';
 
 import {paginatedRequest, request} from './graphql';
-import {RepoKey} from './types';
+import type {RepoKey} from './types';
 
 export async function getRepoInfo(repo: RepoKey) {
   const repoGql = gql`

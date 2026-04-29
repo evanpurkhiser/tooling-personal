@@ -1,4 +1,4 @@
-import {Organization, Repository} from '@octokit/graphql-schema';
+import type {Organization, Repository} from '@octokit/graphql-schema';
 import chalk from 'chalk';
 import mergeIterable from 'fast-merge-async-iterators';
 import {gql} from 'graphql-request';
@@ -6,7 +6,7 @@ import {gql} from 'graphql-request';
 import {config} from './config';
 import {fzfSelect} from './fzf';
 import {paginatedRequest, request} from './graphql';
-import {RepoKey} from './types';
+import type {RepoKey} from './types';
 
 export enum AssigneeType {
   User,

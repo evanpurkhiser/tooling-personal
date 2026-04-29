@@ -1,8 +1,8 @@
-import {DefaultLogFields} from 'simple-git';
+import type {DefaultLogFields} from 'simple-git';
 
-import {spawn} from 'child_process';
-import fs from 'fs/promises';
-import path from 'path';
+import {spawn} from 'node:child_process';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {getRepoPath} from './utils';
 
