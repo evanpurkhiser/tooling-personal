@@ -14,7 +14,8 @@ export async function editPullRequest(commit: DefaultLogFields) {
   const pullEditFile = path.join(await getRepoPath(), '.git', 'PULLREQ_EDITMSG');
   await fs.writeFile(pullEditFile, prTemplate);
 
-  const editor = spawn(process.env.EDITOR ?? 'vim', [pullEditFile], {
+  const quotedFile = `'${pullEditFile.replace(/'/g, `'\\''`)}'`;
+  const editor = spawn(`${process.env.EDITOR ?? 'vim'} ${quotedFile}`, {
     shell: true,
     stdio: 'inherit',
   });

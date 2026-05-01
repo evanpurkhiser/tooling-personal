@@ -40,7 +40,7 @@ export async function fzfSelect<O extends Option = Option>({
     '--ansi',
     '--height=40%',
     '--reverse',
-    `--header="${prompt}"`,
+    `--header=${prompt}`,
     '--with-nth=2..',
   ];
 
@@ -48,7 +48,7 @@ export async function fzfSelect<O extends Option = Option>({
     fzfArgs.push('-m');
   }
 
-  const fzf = spawn('fzf', fzfArgs, {shell: true, stdio: ['pipe', 'pipe', 'inherit']});
+  const fzf = spawn('fzf', fzfArgs, {stdio: ['pipe', 'pipe', 'inherit']});
 
   fzf.stdin.setDefaultEncoding('utf-8');
 
