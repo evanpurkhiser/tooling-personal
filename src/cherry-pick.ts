@@ -1,4 +1,58 @@
-import simpleGit from 'simple-git';
+import simpleGit, {type SimpleGit} from 'simple-git';
+
+/**
+ * Produce an actionable error for a failed `merge-tree` cherry-pick.
+ *
+ * The common failure mode for this workflow is picking a commit that depends
+ * on earlier local-only commits not yet on the base — the merge then conflicts
+ * with content the base hasn't seen. Detect that case explicitly so the caller
+ * (often an LLM) gets a clear next step instead of a generic "conflict".
+ */
+async function buildPickError(
+  git: SimpleGit,
+  sha: string,
+  base: string,
+  baseSha: string,
+  parentSha: string,
+  conflictLines: string[],
+): Promise<Error> {
+  const conflictFiles = [
+    ...new Set(conflictLines.map(line => line.split('\t').slice(1).join('\t'))),
+  ];
+
+  // Local commits between `base` and the picked commit's parent that touched
+  // any conflicting file are candidate blockers — the actual conflict is
+  // caused by at least one of them. We don't narrow further (would require
+  // blaming the conflicting regions specifically), but in this workflow
+  // history is linear so any narrower set would still need to be on the
+  // remote alongside its ancestors.
+  const candidateLog = (
+    await git.raw([
+      'log',
+      '--reverse',
+      '--format=%h %s',
+      `${baseSha}..${parentSha}`,
+      '--',
+      ...conflictFiles,
+    ])
+  ).trim();
+
+  if (candidateLog) {
+    const count = candidateLog.split('\n').length;
+    return new Error(
+      `Cannot cherry-pick ${sha.slice(0, 8)} onto tip of ${base}: ` +
+        `merge conflicts in ${conflictFiles.join(', ')}. ` +
+        `${count} earlier local commit(s) changed those file(s); ` +
+        `one or more is the source of the conflict and must be on the remote ` +
+        `before a PR can be opened:\n${candidateLog}`,
+    );
+  }
+
+  return new Error(
+    `Cannot cherry-pick ${sha.slice(0, 8)} onto ${base}: ` +
+      `content conflicts in ${conflictFiles.join(', ')}. Rebase locally and retry.`,
+  );
+}
 
 /**
  * Build a commit object equivalent to cherry-picking `sha` onto `base`, without
@@ -18,23 +72,25 @@ export async function cherryPickOnto(sha: string, base: string): Promise<string>
   const parentSha = (await git.revparse([`${sha}^`])).trim();
   const baseSha = (await git.revparse([base])).trim();
 
-  let treeOid: string;
-  try {
-    treeOid = (
-      await git.raw([
-        'merge-tree',
-        '--write-tree',
-        '--no-messages',
-        `--merge-base=${parentSha}`,
-        baseSha,
-        sha,
-      ])
-    ).trim();
-  } catch (error) {
-    throw new Error(
-      `Conflicts applying ${sha.slice(0, 8)} onto ${base}. Rebase locally and retry.\n${error}`,
-      {cause: error},
-    );
+  // `git merge-tree --write-tree` exits non-zero on conflicts, but simple-git's
+  // .raw does not surface that — it just returns stdout. On success stdout is
+  // a single tree OID; on conflict it's the tree OID followed by lines of
+  // `<mode> <oid> <stage>\t<path>`. Detect the conflict case explicitly.
+  const mergeOutput = (
+    await git.raw([
+      'merge-tree',
+      '--write-tree',
+      '--no-messages',
+      `--merge-base=${parentSha}`,
+      baseSha,
+      sha,
+    ])
+  ).trim();
+
+  const [treeOid, ...conflictLines] = mergeOutput.split('\n');
+
+  if (conflictLines.length > 0) {
+    throw await buildPickError(git, sha, base, baseSha, parentSha, conflictLines);
   }
 
   const info = await git.raw(['show', '-s', '--format=%an%n%ae%n%aI%n%B', sha]);
