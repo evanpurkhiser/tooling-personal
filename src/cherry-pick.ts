@@ -37,20 +37,18 @@ async function buildPickError(
     ])
   ).trim();
 
-  if (candidateLog) {
-    const count = candidateLog.split('\n').length;
-    return new Error(
-      `Cannot cherry-pick ${sha.slice(0, 8)} onto tip of ${base}: ` +
-        `merge conflicts in ${conflictFiles.join(', ')}. ` +
-        `${count} earlier local commit(s) changed those file(s); ` +
-        `one or more is the source of the conflict and must be on the remote ` +
-        `before a PR can be opened:\n${candidateLog}`,
-    );
+  const fileList = conflictFiles.map(file => `- ${file}`).join('\n');
+  const header = `Cannot cherry-pick ${sha.slice(0, 8)} onto tip of ${base}, merge conflicts in:\n${fileList}`;
+
+  if (!candidateLog) {
+    return new Error(header);
   }
 
+  const candidates = candidateLog.split('\n');
+  const candidateList = candidates.map(line => `- ${line}`).join('\n');
+
   return new Error(
-    `Cannot cherry-pick ${sha.slice(0, 8)} onto ${base}: ` +
-      `content conflicts in ${conflictFiles.join(', ')}. Rebase locally and retry.`,
+    `${header}\n\n${candidates.length} earlier local commit(s) changed those file(s):\n${candidateList}`,
   );
 }
 
