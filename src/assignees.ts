@@ -98,9 +98,7 @@ export async function* getAssignees(repo: RepoKey) {
     ? userAssignees
     : mergeIterable(userAssignees, teamAssignees!);
 
-  const assigneeesToIgnore = config
-    .get('ignoreAssignees')
-    .map(value => new RegExp(value));
+  const assigneesToIgnore = config.get('ignoreAssignees').map(value => new RegExp(value));
 
   for await (const result of items) {
     const assignees = isUser(result)
@@ -119,7 +117,7 @@ export async function* getAssignees(repo: RepoKey) {
 
     // Remove assignees that are ignored
     const filteredAssignees = assignees.filter(
-      assignee => !assigneeesToIgnore.some(r => r.test(assignee.slug)),
+      assignee => !assigneesToIgnore.some(r => r.test(assignee.slug)),
     );
 
     yield* filteredAssignees as Assignee[];

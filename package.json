@@ -13,16 +13,6 @@
     "dist/**",
     "README.md"
   ],
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": "^24.15.0"
-    },
-    "packageManager": {
-      "name": "pnpm",
-      "version": "11.0.0"
-    }
-  },
   "scripts": {
     "build": "tsc && chmod +x ./dist/index.js",
     "start": "ts-node ./src/index.ts",
@@ -56,5 +46,15 @@
     "oxlint": "^1.62.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.0.0"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "^24.15.0"
+    }
   }
 }
