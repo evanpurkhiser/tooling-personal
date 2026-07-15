@@ -35,6 +35,8 @@ jobs:
       - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
       - run: pnpm install --frozen-lockfile
       - name: bump version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "<>"
