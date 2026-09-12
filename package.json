@@ -4,7 +4,7 @@
   "version": "1.57.0",
   "description": "Evan Purkhiser's personal tooling",
   "license": "MIT",
-  "author": "Evan Purkhiser",
+  "author": "Evan Purkhiser <tooling-personal.js@evanpurkhiser.com>",
   "repository": "https://github.com/evanpurkhiser/tooling-personal",
   "bin": {
     "pt": "./dist/index.js"
