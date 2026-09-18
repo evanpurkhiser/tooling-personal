@@ -26,16 +26,15 @@ async function buildPickError(
   // blaming the conflicting regions specifically), but in this workflow
   // history is linear so any narrower set would still need to be on the
   // remote alongside its ancestors.
-  const candidateLog = (
-    await git.raw([
-      'log',
-      '--reverse',
-      '--format=%h %s',
-      `${baseSha}..${parentSha}`,
-      '--',
-      ...conflictFiles,
-    ])
-  ).trim();
+  const rawCandidateLog = await git.raw([
+    'log',
+    '--reverse',
+    '--format=%h %s',
+    `${baseSha}..${parentSha}`,
+    '--',
+    ...conflictFiles,
+  ]);
+  const candidateLog = rawCandidateLog.trim();
 
   const fileList = conflictFiles.map(file => `- ${file}`).join('\n');
   const header = `Cannot cherry-pick ${sha.slice(0, 8)} onto tip of ${base}, merge conflicts in:\n${fileList}`;
@@ -67,23 +66,24 @@ async function buildPickError(
 export async function cherryPickOnto(sha: string, base: string): Promise<string> {
   const git = simpleGit();
 
-  const parentSha = (await git.revparse([`${sha}^`])).trim();
-  const baseSha = (await git.revparse([base])).trim();
+  const parentRevision = await git.revparse([`${sha}^`]);
+  const parentSha = parentRevision.trim();
+  const baseRevision = await git.revparse([base]);
+  const baseSha = baseRevision.trim();
 
   // `git merge-tree --write-tree` exits non-zero on conflicts, but simple-git's
   // .raw does not surface that — it just returns stdout. On success stdout is
   // a single tree OID; on conflict it's the tree OID followed by lines of
   // `<mode> <oid> <stage>\t<path>`. Detect the conflict case explicitly.
-  const mergeOutput = (
-    await git.raw([
-      'merge-tree',
-      '--write-tree',
-      '--no-messages',
-      `--merge-base=${parentSha}`,
-      baseSha,
-      sha,
-    ])
-  ).trim();
+  const rawMergeOutput = await git.raw([
+    'merge-tree',
+    '--write-tree',
+    '--no-messages',
+    `--merge-base=${parentSha}`,
+    baseSha,
+    sha,
+  ]);
+  const mergeOutput = rawMergeOutput.trim();
 
   const [treeOid, ...conflictLines] = mergeOutput.split('\n');
 

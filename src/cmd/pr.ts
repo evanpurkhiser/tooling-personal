@@ -118,10 +118,10 @@ export async function pr(argv: Args) {
     });
 
   // 01. Select which commit to turn into a PR
-  const selectedCommit =
+  const [selectedCommit] =
     commits.total === 1
-      ? {id: commits.all[0].hash, ...commits.all[0]}
-      : (await pickCommit())[0];
+      ? [{id: commits.all[0].hash, ...commits.all[0]}]
+      : await pickCommit();
 
   if (!selectedCommit) {
     console.log(chalk.red`No commit selected, aborting`);

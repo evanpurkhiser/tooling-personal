@@ -50,7 +50,8 @@ async function getDiffSource(commit: string | undefined): Promise<DiffSource> {
 
   if (commit) {
     const diff = await git.raw(['show', '-U0', '--format=', commit]);
-    const rev = (await git.revparse([`${commit}^`])).trim();
+    const revision = await git.revparse([`${commit}^`]);
+    const rev = revision.trim();
     return {diff, rev, label: `commit ${commit}`};
   }
 
@@ -69,7 +70,8 @@ async function getDiffSource(commit: string | undefined): Promise<DiffSource> {
 
 export async function suggestAssignees(argv: Args) {
   const repo = await getRepoKey();
-  const selfEmail = (await simpleGit().raw('config', '--get', 'user.email')).trim();
+  const configuredEmail = await simpleGit().raw('config', '--get', 'user.email');
+  const selfEmail = configuredEmail.trim();
 
   // 01. Figure out what we're scoring against (staged, unstaged, or a commit)
   const {diff, rev, label} = await getDiffSource(argv.commit);
